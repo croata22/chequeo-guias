@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d3d8f">
+<meta name="description" content="Chequeo de guías de traspaso por palet, con escaneo de cajas.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-family:system-ui,sans-serif;font-size:14px}img{max-width:100%}</style>
+</head>
+<body>
+<title>Chequeo de Guías</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: herramienta de una columna para celular; barra fija arriba (pestañas), lista de líneas por bulto, todo con botones grandes para usar de pie en la bodega */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --sunken:#e3e8ef; --line:#cdd5e0;
+  --fg:#16202e; --muted:#5a6779; --ink:#1d3d8f; --ink-soft:#dfe6f7; --on-ink:#ffffff;
+  --ok:#17803d; --ok-soft:#dcf2e3; --warn:#a65d00; --warn-soft:#fbecd6; --bad:#c0262d; --bad-soft:#fbe1e1;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141c; --surface:#18202b; --sunken:#121922; --line:#2c3746;
+  --fg:#e6ebf2; --muted:#93a0b2; --ink:#7f9cf0; --ink-soft:#1f2b48; --on-ink:#0d1320;
+  --ok:#4cc27a; --ok-soft:#173326; --warn:#f0a443; --warn-soft:#3a2a14; --bad:#f2767b; --bad-soft:#3d1c1f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141c; --surface:#18202b; --sunken:#121922; --line:#2c3746;
+  --fg:#e6ebf2; --muted:#93a0b2; --ink:#7f9cf0; --ink-soft:#1f2b48; --on-ink:#0d1320;
+  --ok:#4cc27a; --ok-soft:#173326; --warn:#f0a443; --warn-soft:#3a2a14; --bad:#f2767b; --bad-soft:#3d1c1f; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{padding-block:10px 0;display:grid;gap:8px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:24px;letter-spacing:.01em;margin:0;text-wrap:balance}
+.brand .meta{font-size:13px;color:var(--muted);text-align:right}
+.prog{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ink);width:0;transition:width .25s}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px 9px;font-weight:600;color:var(--muted);font-size:15px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs .badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:10px;font-size:12px;background:var(--sunken);color:var(--muted)}
+.tabs .badge.alert{background:var(--bad-soft);color:var(--bad)}
+
+main .wrap{padding-block:16px 120px;display:grid;gap:16px}
+.panel{display:grid;gap:14px}
+h2{font-family:var(--f-display);font-weight:700;font-size:21px;margin:0;letter-spacing:.01em}
+.hint{color:var(--muted);font-size:14px;margin:0;max-width:62ch}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.btn.ghost{background:transparent}
+.btn.small{min-height:36px;padding:0 12px;font-size:14px}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Scan bar */
+.scanbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hdr,120px));z-index:5;background:var(--bg);padding-block:4px 8px;display:grid;gap:8px}
+.scanrow{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.scanbtn{min-height:52px;padding:0 18px;font-size:16px}
+.field{min-height:52px;width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 14px;font-size:16px}
+.toggle select{color:var(--fg)}
+.bultos{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.chip .c{font-family:var(--f-mono);font-weight:400;opacity:.85}
+.chip.done::after{content:"✓";font-weight:700}
+label.toggle{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
+label.toggle input{width:18px;height:18px;accent-color:var(--ink)}
+
+/* Lines */
+.list{display:grid;gap:8px}
+.bhead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--line)}
+.bhead b{font-family:var(--f-mono);font-size:13px}
+.bhead span{font-size:13px;color:var(--muted)}
+.item{display:grid;grid-template-columns:6px 1fr auto;gap:0 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.item .stripe{background:var(--line)}
+.item[data-s="ok"] .stripe{background:var(--ok)}
+.item[data-s="part"] .stripe{background:var(--warn)}
+.item[data-s="over"] .stripe{background:var(--bad)}
+.item.flash{animation:flash .9s ease-out}
+@keyframes flash{from{box-shadow:0 0 0 3px var(--ink)}to{box-shadow:0 0 0 0 transparent}}
+.item .info{padding:10px 0;min-width:0;display:grid;gap:3px}
+.item .desc{font-weight:600;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.item .codes{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px}
+.item .codes .ean b{color:var(--fg);font-weight:600}
+.item .warnline{font-size:12.5px;color:var(--warn)}
+.item .edit{justify-self:start;background:none;border:0;padding:0;color:var(--ink);font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.counter{display:grid;grid-template-columns:44px auto 44px;align-items:center;padding:8px 10px 8px 0;gap:4px}
+.counter button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--sunken);font-size:22px;font-weight:600;line-height:1}
+.counter button.plus{background:var(--ink-soft);border-color:transparent;color:var(--ink)}
+.counter .val{min-width:58px;text-align:center;display:grid;line-height:1.1}
+.counter .val b{font-family:var(--f-display);font-size:26px}
+.counter .val small{font-size:11.5px;color:var(--muted)}
+.item[data-s="ok"] .val b{color:var(--ok)}
+.item[data-s="over"] .val b{color:var(--bad)}
+.item[data-s="part"] .val b{color:var(--warn)}
+@media (max-width:420px){
+  .item{grid-template-columns:6px 1fr}
+  .counter{grid-column:2;justify-content:start;padding:0 0 10px}
+}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);display:grid;gap:10px;justify-items:center}
+
+/* Extras */
+.extras{background:var(--bad-soft);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
+.extras h3{margin:0;font-size:14px;color:var(--bad)}
+.extras .x{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:14px}
+
+/* Guías */
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;background:var(--surface)}
+.queue{display:grid;gap:8px}
+.qitem{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px}
+.qitem canvas{width:64px;height:84px;object-fit:contain;background:var(--sunken);border-radius:6px}
+.qitem .st{font-size:13.5px;color:var(--muted)}
+.guia{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+.guia .gh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.guia .gh b{font-family:var(--f-display);font-size:20px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.neutral{background:var(--sunken);color:var(--muted)}
+.guia .facts{font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--sunken);font-weight:600;color:var(--muted)}
+td.r,th.r{text-align:right}
+
+/* Resumen */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.stat b{font-family:var(--f-display);font-size:30px;line-height:1}
+.stat span{font-size:13px;color:var(--muted)}
+.stat.ok b{color:var(--ok)} .stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)}
+.diff{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.diff h3{margin:0;padding:8px 12px;font-size:14px;background:var(--sunken)}
+.diff .d{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 12px;border-top:1px solid var(--line);font-size:14px}
+.diff .d small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.diff .d .q{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+pre.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--f-mono);font-size:12.5px;margin:0;max-height:300px;overflow:auto}
+
+/* Toast + modal */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--fg);color:var(--bg);border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;max-width:min(560px,calc(100vw - 32px));box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14.5px}
+.toast.bad{background:var(--bad);color:#fff}
+.toast button{background:transparent;border:1px solid currentColor;border-radius:8px;padding:6px 10px;font-weight:600;flex:none}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(10,15,25,.55);display:grid;place-items:end center;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--surface);border-radius:14px;padding:16px;width:min(520px,100%);display:grid;gap:12px;max-height:90vh;overflow:auto}
+.sheet label{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+.sheet .field{min-height:44px;font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scanner{position:fixed;inset:0;z-index:50;background:#000;color:#fff;display:grid;grid-template-rows:auto 1fr auto}
+.scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanner .bar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;background:rgba(0,0,0,.6);padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scanner .bar.bottom{padding-top:12px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.scanner .hud{font-family:var(--f-display);font-size:22px;font-weight:700}
+.scanner .hud small{display:block;font-family:var(--f-body);font-size:13px;font-weight:400;opacity:.8}
+.scanner .aim{position:relative;z-index:1;align-self:center;justify-self:center;width:min(78vw,420px);aspect-ratio:2.2/1;max-width:100%;border:3px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35);transition:border-color .15s}
+.scanner .aim.hit{border-color:#4cc27a}
+.scanner .aim.miss{border-color:#f2767b}
+.scanner .last{position:relative;z-index:1;font-size:15px;min-height:1.4em;flex:1;min-width:0;overflow-wrap:anywhere}
+.scanner button,.scanner label{flex:none;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-weight:600;display:inline-flex;align-items:center}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top" id="hdr">
+  <div class="wrap">
+    <div class="brand">
+      <h1>Chequeo de Guías</h1>
+      <div class="meta" id="hdrMeta">—</div>
+    </div>
+    <div class="prog" aria-hidden="true"><i id="progBar"></i></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tab-guias" aria-selected="false" data-tab="guias">Guías<span class="badge" id="bdgGuias">0</span></button>
+      <button role="tab" id="tab-revisar" aria-selected="true" data-tab="revisar">Revisar<span class="badge" id="bdgRev">0</span></button>
+      <button role="tab" id="tab-resumen" aria-selected="false" data-tab="resumen">Resumen<span class="badge" id="bdgRes">0</span></button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <!-- GUÍAS -->
+  <section class="panel" id="p-guias" hidden>
+    <div class="drop" id="importBox">
+      <div>
+        <h2>Traer guías desde Claude</h2>
+        <p class="hint">En Claude, fotografía y lee las hojas. Cuando estén en verde toca "Copiar para la app", vuelve aquí y toca "Pegar desde Claude".</p>
+      </div>
+      <div class="row"><button class="btn primary" id="pasteBtn">Pegar desde Claude</button></div>
+      <textarea id="pasteIn" class="field mono" rows="3" hidden placeholder="Mantén presionado aquí y elige Pegar" style="padding:8px;font-size:12px;min-height:0"></textarea>
+    </div>
+    <div class="drop" hidden>
+      <div>
+        <h2>Agregar guías</h2>
+        <p class="hint">Saca una foto por hoja, derecha y con buena luz, que se vea la tabla completa y el monto total. Claude lee cada hoja y arma la lista; después la app comprueba que la suma calce con el monto total.</p>
+      </div>
+      <div class="row">
+        <label class="btn primary" for="photoIn">Fotografiar hojas</label>
+        <input id="photoIn" type="file" accept="image/*" multiple hidden>
+        <button class="btn" id="readBtn" hidden>Leer hojas</button>
+      </div>
+      <p class="hint" id="sampleNote" hidden></p>
+      <div class="queue" id="queue"></div>
+    </div>
+
+    <div class="row" style="justify-content:space-between">
+      <h2>Palets cargados</h2>
+      <div class="row">
+        <button class="btn small ghost" id="sampleBtn" hidden>Cargar ejemplo</button>
+        <button class="btn small danger" id="resetBtn">Nueva recepción</button>
+      </div>
+    </div>
+    <div id="guiaList" class="list"></div>
+
+    <div class="drop" id="sendBox" hidden>
+      <div>
+        <h2>Pasar a la app instalada</h2>
+        <p class="hint">Cuando las hojas estén leídas y en verde, toca "Copiar para la app". Después abre la app en tu celular y toca "Pegar desde Claude".</p>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="copyApp">Copiar para la app</button>
+        <a class="btn" id="openApp" target="_blank" rel="noopener" hidden>Abrir en la app</a>
+      </div>
+      <label class="toggle" style="display:grid;gap:4px">Dirección de tu app (opcional, para el botón "Abrir en la app")
+        <input class="field mono" id="appUrl" type="url" inputmode="url" placeholder="https://tuusuario.github.io/chequeo-guias/">
+      </label>
+      <textarea id="codeOut" class="field mono" rows="3" readonly hidden style="padding:8px;font-size:12px;min-height:0"></textarea>
+    </div>
+  </section>
+
+  <!-- REVISAR -->
+  <section class="panel" id="p-revisar">
+    <div class="scanbar" id="scanbar">
+      <div class="scanrow">
+        <button class="btn primary scanbtn" id="liveBtn">Escanear</button>
+        <input id="scanIn" type="file" accept="image/*" capture="environment" hidden>
+        <input class="field mono" id="codeIn" type="search" inputmode="search" autocomplete="off" placeholder="Código, últimos dígitos o nombre">
+      </div>
+      <div class="bultos" id="bultos" role="group" aria-label="Palets"></div>
+      <div class="row" style="justify-content:space-between">
+        <label class="toggle"><input type="checkbox" id="onlyPending"> Ocultar completas</label>
+        <label class="toggle">Ordenar
+          <select id="orden" class="field" style="min-height:38px;width:auto;padding:0 10px;font-size:14px">
+            <option value="guia">Como en la guía</option>
+            <option value="desc">Valor total: mayor a menor</option>
+            <option value="asc">Valor total: menor a mayor</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div id="extrasBox"></div>
+    <div class="list" id="lines"></div>
+  </section>
+
+  <!-- RESUMEN -->
+  <section class="panel" id="p-resumen" hidden>
+    <div class="stats" id="stats"></div>
+    <div id="diffs" class="list"></div>
+    <div class="row" style="justify-content:space-between">
+      <h2>Texto para enviar</h2>
+      <button class="btn primary small" id="copyBtn">Copiar</button>
+    </div>
+    <pre class="out" id="outText"></pre>
+  </section>
+
+</div>
+</main>
+
+<div class="scanner" id="scanner" hidden>
+  <video id="video" playsinline muted></video>
+  <div class="bar"><div class="hud" id="hud">Palet<small>—</small></div><button id="scanClose">Cerrar</button></div>
+  <div class="aim" id="aim"></div>
+  <div class="bar bottom"><span class="last" id="scanLast">Apunta al código de barras de la caja</span>
+    <button id="torchBtn" hidden>Linterna</button><label for="scanIn">Foto</label></div>
+</div>
+
+<div id="toast" class="toast" hidden role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
+
+<div class="modal" id="modal" hidden>
+  <form class="sheet" id="editForm">
+    <h2 id="editTitle">Editar línea</h2>
+    <label>Descripción<input class="field" id="eDesc"></label>
+    <label>Código de barra (EAN / DUN)<input class="field mono" id="eEan" inputmode="numeric"></label>
+    <div class="grid2">
+      <label>Cantidad en guía<input class="field mono" id="eCant" type="number" min="0" inputmode="numeric"></label>
+      <label>Contadas<input class="field mono" id="eN" type="number" min="0" inputmode="numeric"></label>
+    </div>
+    <div class="grid2">
+      <label>Código interno<input class="field mono" id="eCod" inputmode="numeric"></label>
+      <label>UM<select class="field" id="eUm"><option>CS</option><option>UN</option><option>PAK</option></select></label>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button type="button" class="btn small danger" id="eDel">Borrar línea</button>
+      <div class="row">
+        <button type="button" class="btn" id="eCancel">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+(() => {
+const SAMPLE = [];
+const KEY = "chequeo-guias-v1";
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString("es-CL");
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ---------- estado ---------- */
+let S = load() || { guias: [], extras: {}, bulto: "", onlyPending: false, tab: "revisar", orden: "guia" };
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+
+const allLines = () => S.guias.flatMap(g => g.lineas);
+/* N° de palet canónico: el número 7000… sin el 7 ni los ceros iniciales, así "70000000016156839" y "700000000016156839" son el mismo palet.
+   Si una hoja trae solo el número 1012…, se usa el palet que ese mismo número tiene en otra hoja. */
+let ALIAS = {};
+function splitB(b){
+  const p = String(b || "").split("/").map(x => x.replace(/\D/g, "")).filter(Boolean);
+  let pal = p.find(x => x.length >= 12 && x[0] === "7") || (p.length > 1 ? p[1] : "");
+  const doc = p.find(x => x !== pal) || "";
+  return { pal: pal ? (pal.replace(/^7/, "").replace(/^0+/, "") || pal) : "", doc };
+}
+function rebuildAlias(){
+  ALIAS = {};
+  for (const g of S.guias) for (const l of g.lineas){ const s = splitB(l.bulto); if (s.pal && s.doc) ALIAS[s.doc] = s.pal; }
+}
+const palDigits = d => d.replace(/^7/, "").replace(/^0+/, "");
+const bkey = b => { const s = splitB(b); return s.pal || ALIAS[s.doc] || s.doc || "sinpalet"; };
+const plabel = k => k === "sinpalet" ? "Sin palet" : k.slice(-4);
+function state(l){ if (!l.n) return "none"; if (l.n === l.cant) return "ok"; return l.n > l.cant ? "over" : "part"; }
+
+/* GTIN: rellena a 14, valida dígito verificador, "núcleo" sin indicador ni verificador */
+const pad14 = c => String(c).replace(/\D/g, "").padStart(14, "0");
+function gtinOk(c){
+  const d = pad14(c); if (d.length !== 14 || /^0+$/.test(d)) return false;
+  let t = 0; for (let i = 0; i < 13; i++) t += (+d[i]) * (i % 2 === 0 ? 3 : 1);
+  return (10 - t % 10) % 10 === +d[13];
+}
+const core = c => pad14(c).slice(1, 13);
+
+function guiaCheck(g){
+  const suma = g.lineas.reduce((a, l) => a + (+l.valor || 0), 0);
+  if (!g.monto) return { s: "neutral", t: "Sin monto total", suma };
+  const iva = Math.round(suma * 1.19);
+  if (Math.abs(iva - g.monto) <= 3 || Math.abs(suma - g.monto) <= 3) return { s: "ok", t: "Monto cuadra", suma };
+  return { s: "bad", t: `No cuadra: falta $${fmt(g.monto - iva)}`, suma };
+}
+
+function makeGuia(o){
+  return {
+    id: uid(), folio: String(o.folio || "").replace(/\D/g, "") || "s/n", entrega: o.entrega || "", monto: +o.monto || 0,
+    lineas: (o.l || []).map(r => ({ id: uid(), bulto: r[0], codigo: String(r[1]), cant: +r[2], um: r[3], ean: String(r[4]), desc: r[5], precio: +r[6], valor: +r[7], n: 0 }))
+  };
+}
+
+/* ---------- pestañas ---------- */
+function setTab(t){
+  S.tab = t; save();
+  for (const b of document.querySelectorAll(".tabs button")) b.setAttribute("aria-selected", b.dataset.tab === t);
+  $("#p-guias").hidden = t !== "guias"; $("#p-revisar").hidden = t !== "revisar"; $("#p-resumen").hidden = t !== "resumen";
+  render();
+}
+for (const b of document.querySelectorAll(".tabs button")) b.onclick = () => setTab(b.dataset.tab);
+new ResizeObserver(() => document.documentElement.style.setProperty("--hdr", $("#hdr").offsetHeight + "px")).observe($("#hdr"));
+
+/* ---------- render ---------- */
+function render(){
+  rebuildAlias();
+  const L = allLines();
+  const exp = L.reduce((a, l) => a + l.cant, 0), got = L.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
+  $("#progBar").style.width = exp ? (100 * got / exp) + "%" : 0;
+  const entrega = S.guias.find(g => g.entrega)?.entrega;
+  $("#hdrMeta").innerHTML = exp ? `<span class="num"><b>${got}</b> / ${exp}</span> contados${entrega ? " · Entrega " + esc(entrega) : ""}` : "Sin guías cargadas";
+  $("#bdgGuias").textContent = S.guias.length;
+  $("#bdgRev").textContent = L.filter(l => state(l) !== "ok").length;
+  const nDiff = L.filter(l => l.n && l.n !== l.cant).length + Object.keys(S.extras).length;
+  $("#bdgRes").textContent = nDiff; $("#bdgRes").classList.toggle("alert", nDiff > 0);
+  if (S.tab === "revisar") renderRevisar();
+  if (S.tab === "guias") renderGuias();
+  if (S.tab === "resumen") renderResumen();
+}
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function bultoGroups(){
+  const m = new Map();
+  for (const l of allLines()){ const k = bkey(l.bulto); if (!m.has(k)) m.set(k, { k, label: l.bulto, lines: [] }); m.get(k).lines.push(l); }
+  return [...m.values()];
+}
+
+function renderRevisar(){
+  const groups = bultoGroups();
+  if (!groups.some(g => g.k === S.bulto)) S.bulto = groups[0]?.k || "";
+  const L = allLines();
+  const chip = (k, name, ls) => {
+    const e = ls.reduce((a, l) => a + l.cant, 0), c = ls.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
+    const done = ls.length && ls.every(l => state(l) === "ok");
+    return `<button class="chip${done ? " done" : ""}" data-b="${k}" aria-pressed="${S.bulto === k}">Palet ${esc(name)} <span class="c">${c}/${e}</span></button>`;
+  };
+  $("#bultos").innerHTML = groups.map(g => chip(g.k, plabel(g.k), g.lines)).join("");
+  for (const b of $("#bultos").querySelectorAll(".chip")) b.onclick = () => { S.bulto = b.dataset.b; save(); render(); };
+  $("#onlyPending").checked = S.onlyPending;
+  $("#orden").value = S.orden || "guia";
+
+  const ex = Object.entries(S.extras);
+  const isSample = S.guias.length && S.guias.every(g => SAMPLE.some(o => o.folio === g.folio));
+  $("#extrasBox").innerHTML = (isSample ? `<p class="hint" style="background:var(--ink-soft);color:var(--fg);padding:10px 12px;border-radius:10px">Estás viendo 2 hojas de ejemplo (guías 77015042 y 77015043). Prueba los botones + y −; para empezar de verdad usa "Nueva recepción" en la pestaña Guías.</p>` : "") + (ex.length ? `<div class="extras"><h3>Escaneados que no están en la guía</h3>${ex.map(([c, n]) =>
+    `<div class="x"><span class="mono">${esc(c)} · ${n} caja${n > 1 ? "s" : ""}</span><button class="btn small" data-rx="${esc(c)}">Quitar</button></div>`).join("")}</div>` : "");
+  for (const b of $("#extrasBox").querySelectorAll("[data-rx]")) b.onclick = () => { delete S.extras[b.dataset.rx]; save(); render(); };
+
+  if (!L.length){
+    $("#lines").innerHTML = `<div class="empty"><b>Todavía no hay guías</b><span>Fotografía las hojas en la pestaña Guías, o carga el ejemplo para probar.</span><button class="btn primary" id="goGuias">Ir a Guías</button></div>`;
+    $("#goGuias").onclick = () => setTab("guias"); return;
+  }
+  const q = $("#codeIn").value.trim().toLowerCase();
+  const qd = q.replace(/\D/g, "");
+  let html = "";
+  for (const g of groups){
+    if (g.k !== S.bulto) continue;
+    let ls = g.lines.slice();
+    if (q) ls = ls.filter(l => l.desc.toLowerCase().includes(q) || (qd.length >= 3 && (l.ean.includes(qd) || l.codigo.includes(qd))));
+    else if (S.onlyPending) ls = ls.filter(l => state(l) !== "ok");
+    if (S.orden === "desc") ls.sort((a, b) => b.valor - a.valor);
+    if (S.orden === "asc") ls.sort((a, b) => a.valor - b.valor);
+    if (!ls.length) continue;
+    const e = g.lines.reduce((a, l) => a + l.cant, 0), c = g.lines.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
+    html += `<div class="bhead"><b>Palet ${esc(plabel(g.k))}</b><span class="num">${c}/${e}</span></div>`;
+    html += ls.map(lineHtml).join("");
+  }
+  $("#lines").innerHTML = html || `<div class="empty">${q ? "Nada coincide con la búsqueda en este palet." : "Todo este palet está completo."}</div>`;
+}
+
+function lineHtml(l){
+  const s = state(l);
+  const e = l.ean, tail = e.slice(-5), head = e.slice(0, -5);
+  const per = l.cant && l.precio ? Math.round(l.valor / (l.cant * l.precio)) : 0;
+  const warn = !gtinOk(e) ? `<span class="warnline">Código dudoso: puede estar mal leído, revísalo contra la guía</span>` : "";
+  return `<div class="item" data-s="${s}" data-id="${l.id}">
+    <span class="stripe"></span>
+    <div class="info">
+      <span class="desc">${esc(l.desc)}</span>
+      <span class="codes"><span class="ean">${esc(head)}<b>${esc(tail)}</b></span><span>Cód. ${esc(l.codigo)}</span>${per > 1 ? `<span>${per} un/${esc(l.um)}</span>` : ""}<span>Total $${fmt(l.valor)}</span></span>
+      ${warn}
+      <button class="edit" data-edit="${l.id}">Editar</button>
+    </div>
+    <div class="counter">
+      <button aria-label="Restar uno" data-m="${l.id}">−</button>
+      <span class="val"><b>${l.n}</b><small>de ${l.cant} ${esc(l.um)}</small></span>
+      <button class="plus" aria-label="Sumar uno" data-p="${l.id}">+</button>
+    </div>
+  </div>`;
+}
+
+$("#lines").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.p) bump(t.dataset.p, 1);
+  else if (t.dataset.m) bump(t.dataset.m, -1);
+  else if (t.dataset.edit) openEdit(t.dataset.edit);
+});
+$("#lines").addEventListener("dblclick", e => {
+  const it = e.target.closest(".item"); if (!it || e.target.closest("button")) return;
+  const l = findLine(it.dataset.id); l.n = l.cant; save(); render();
+});
+$("#onlyPending").onchange = e => { S.onlyPending = e.target.checked; save(); render(); };
+$("#orden").onchange = e => { S.orden = e.target.value; save(); render(); };
+const findLine = id => allLines().find(l => l.id === id);
+
+function bump(id, d, msg){
+  const l = findLine(id); if (!l) return;
+  const before = l.n; l.n = Math.max(0, l.n + d); save(); render();
+  const el = document.querySelector(`.item[data-id="${id}"]`);
+  if (el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+  if (msg) toast(msg, "Deshacer", () => { l.n = before; save(); render(); }, state(l) === "over");
+}
+
+/* ---------- escaneo / búsqueda ---------- */
+function handleCode(raw){
+  const d = String(raw).replace(/\D/g, "");
+  if (d.length < 6) return false;
+  // ¿etiqueta de bulto?
+  for (const g of bultoGroups()){
+    const parts = String(g.label).split("/").map(p => p.replace(/\D/g, ""));
+    if (palDigits(d) === g.k || parts.some(p => p && (p === d || (d.length >= 9 && p.endsWith(d))))){
+      S.bulto = g.k; $("#codeIn").value = ""; save(); render(); toast(`Palet ${plabel(g.k)}`); return true;
+    }
+  }
+  const L = allLines();
+  const pick = arr => {
+    const inB = arr.filter(l => bkey(l.bulto) === S.bulto);
+    const pool = inB.length ? inB : arr;
+    const l = pool.find(x => x.n < x.cant) || pool[0];
+    if (bkey(l.bulto) !== S.bulto){ S.bulto = bkey(l.bulto); setTimeout(() => toast(`Ojo: ese producto es del palet ${plabel(S.bulto)}. Cambié a ese palet.`, null, null, true), 2700); }
+    return l;
+  };
+  let hit = L.filter(l => pad14(l.ean) === pad14(d));
+  if (hit.length){ const l = pick(hit); bump(l.id, 1, `+1 ${short(l.desc)} → ${l.n + 1}/${l.cant}`); return true; }
+  hit = L.filter(l => l.codigo === d);
+  if (hit.length){ const l = pick(hit); bump(l.id, 1, `+1 ${short(l.desc)} → ${l.n + 1}/${l.cant}`); return true; }
+  if (d.length >= 11){
+    hit = L.filter(l => core(l.ean) === core(d));
+    if (hit.length){ const l = pick(hit); bump(l.id, 1, `Código de unidad, sumé 1 ${l.um}: ${short(l.desc)} → ${l.n + 1}/${l.cant}`); return true; }
+    S.extras[d] = (S.extras[d] || 0) + 1; save(); render();
+    toast(`${d} no está en la guía`, "Deshacer", () => { if (--S.extras[d] <= 0) delete S.extras[d]; save(); render(); }, true);
+    return true;
+  }
+  return false;
+}
+const short = s => s.length > 28 ? s.slice(0, 27) + "…" : s;
+
+$("#codeIn").addEventListener("input", () => render());
+$("#codeIn").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const v = e.target.value.trim(); if (!v) return;
+  if (/^\d{8,}$/.test(v) && handleCode(v)){ e.target.value = ""; render(); return; }
+  const vis = [...document.querySelectorAll("#lines .item")];
+  if (vis.length === 1){ bump(vis[0].dataset.id, 1, "+1"); e.target.value = ""; render(); }
+});
+
+$("#scanIn").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  toast("Leyendo código…");
+  try {
+    const code = await decodeBarcode(f);
+    if (!code){ toast("No encontré un código de barras. Acércate más y que salga derecho.", null, null, true); return; }
+    if (!handleCode(code)) toast(`Leí ${code}, pero no calza con nada`, null, null, true);
+  } catch { toast("No pude leer la foto. Prueba de nuevo o escribe el código.", null, null, true); }
+};
+
+async function loadImg(blob){
+  const url = URL.createObjectURL(blob);
+  try { const img = new Image(); img.src = url; await img.decode(); return img; } finally { setTimeout(() => URL.revokeObjectURL(url), 2000); }
+}
+function scaled(img, maxSide, rot = 0){
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+  const k = Math.min(1, maxSide / Math.max(w0, h0)); const w = Math.round(w0 * k), h = Math.round(h0 * k);
+  const c = document.createElement("canvas"); const side = rot % 180 !== 0;
+  c.width = side ? h : w; c.height = side ? w : h;
+  const x = c.getContext("2d"); x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(img, -w / 2, -h / 2, w, h);
+  return c;
+}
+async function decodeBarcode(file){
+  const img = await loadImg(file);
+  const c = scaled(img, 1600);
+  if ("BarcodeDetector" in window){
+    try {
+      const det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "itf", "code_128"] });
+      const r = await det.detect(c);
+      const best = r.map(x => x.rawValue.replace(/\D/g, "")).sort((a, b) => b.length - a.length)[0];
+      if (best) return best;
+    } catch {}
+  }
+  if (window.ZXing){
+    const Z = window.ZXing;
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.ITF, Z.BarcodeFormat.CODE_128]);
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    const reader = new Z.MultiFormatReader(); reader.setHints(hints);
+    for (const rot of [0, 90]){
+      const cc = rot ? scaled(img, 1600, 90) : c;
+      try {
+        const lum = new Z.HTMLCanvasElementLuminanceSource(cc);
+        const res = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(lum)));
+        if (res) return res.getText();
+      } catch {}
+    }
+  }
+  return null;
+}
+
+/* ---------- lectura de guías con Claude ---------- */
+let sample = null, imgLimits = null;
+const queue = []; // {id, file, rot, status, msg}
+(async () => {
+  try { sample = await window.claude?.use?.("sample"); } catch { sample = null; }
+  if (sample){ try { imgLimits = (await sample.limits())?.images || null; } catch { imgLimits = null; } }
+  if (!sample || !imgLimits){
+    $("#sampleNote").hidden = false;
+    $("#sampleNote").textContent = "La lectura automática de fotos funciona al abrir esta página en Claude. Mientras tanto puedes probar con el ejemplo.";
+  }
+  renderQueue();
+})();
+
+$("#photoIn").onchange = e => {
+  for (const f of e.target.files) queue.push({ id: uid(), file: f, rot: 0, status: "lista", msg: "Lista para leer" });
+  e.target.value = ""; renderQueue();
+};
+
+async function renderQueue(){
+  const box = $("#queue");
+  $("#readBtn").hidden = !queue.some(q => q.status === "lista" || q.status === "error");
+  $("#readBtn").disabled = !sample || !imgLimits;
+  box.innerHTML = queue.map(q => `<div class="qitem" data-q="${q.id}"><canvas></canvas><div style="display:grid;gap:6px;min-width:0">
+    <span class="st">${esc(q.msg)}</span>
+    ${q.status === "lista" || q.status === "error" ? `<div class="row"><button class="btn small" data-rot="${q.id}">Girar ⟳</button><button class="btn small ghost" data-rm="${q.id}">Quitar</button></div>` : ""}
+  </div></div>`).join("");
+  for (const q of queue){
+    const cv = box.querySelector(`[data-q="${q.id}"] canvas`);
+    try { const img = q._img || (q._img = await loadImg(q.file)); const s = scaled(img, 180, q.rot); cv.width = s.width; cv.height = s.height; cv.getContext("2d").drawImage(s, 0, 0); } catch {}
+  }
+}
+$("#queue").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.rot){ const q = queue.find(x => x.id === b.dataset.rot); q.rot = (q.rot + 90) % 360; renderQueue(); }
+  if (b.dataset.rm){ queue.splice(queue.findIndex(x => x.id === b.dataset.rm), 1); renderQueue(); }
+});
+
+const PROMPT = (two) => `Te paso la foto de UNA hoja de una guía de despacho (traspaso) de Cencosud/Santa Isabel, tomada con celular en una bodega.${two ? " Vienen como DOS imágenes: la mitad superior y la mitad inferior de la MISMA hoja, con un pequeño traslape; no repitas las líneas del traslape." : ""}
+
+Extrae cada línea de producto de la tabla (columnas CODIGO, CANT., UM, DESCRIPCION, PRECIO UNIT, VALOR). Debajo de la descripción de cada bloque viene un código de barras numérico de 11 a 14 dígitos alineado con la línea: ese es "ean".
+Las líneas en negrita del tipo "1012586651 / 70000000016156839-" son encabezados de palet: asigna a cada producto el encabezado más cercano que esté ARRIBA de él (sin el guion final). Si la hoja empieza sin encabezado, usa el primero que aparezca.
+Ignora el texto gris y desteñido que se transparenta de la hoja de atrás; solo cuentan las líneas impresas nítidas.
+Los números usan punto de miles: "1.611.605" es 1611605. Copia cada dígito con mucho cuidado. Si un dígito es ilegible, escribe "?" en su lugar.
+"folio" es el número de 8 dígitos impreso bajo el código de barras chico de abajo a la izquierda. "montoTotal" es el MONTO TOTAL. "entrega" es el N° ENTREGA.
+
+Responde solo con JSON, con esta forma:
+{"folio":"77015042","entrega":"N776","montoTotal":1611605,"lineas":[{"bulto":"1012586651 / 70000000016156839","codigo":"1660562","cant":4,"um":"CS","ean":"17800120170160","desc":"AVENA INSTANTANEA VIVO 800 GR","precio":2390,"valor":95600}]}`;
+
+let running = 0;
+$("#readBtn").onclick = () => {
+  for (const q of queue) if (q.status === "lista" || q.status === "error"){ q.status = "espera"; q.msg = "En espera…"; }
+  renderQueue(); pump();
+};
+function pump(){
+  while (running < 2){
+    const q = queue.find(x => x.status === "espera"); if (!q) break;
+    running++; readOne(q).finally(() => { running--; pump(); });
+  }
+}
+async function readOne(q){
+  q.status = "leyendo"; q.msg = "Claude está leyendo la hoja… (puede tardar 1 a 2 minutos)"; renderQueue();
+  try {
+    const img = q._img || (q._img = await loadImg(q.file));
+    const full = scaled(img, 3000, q.rot);
+    let blobs;
+    if ((imgLimits?.maxCount || 1) >= 2){
+      const h = full.height, cut = Math.round(h * 0.54);
+      blobs = await Promise.all([[0, cut], [h - cut, cut]].map(([y, hh]) => {
+        const c = document.createElement("canvas"); c.width = full.width; c.height = hh;
+        c.getContext("2d").drawImage(full, 0, y, full.width, hh, 0, 0, full.width, hh);
+        return new Promise(r => c.toBlob(r, "image/jpeg", 0.9));
+      }));
+    } else blobs = [await new Promise(r => full.toBlob(r, "image/jpeg", 0.9))];
+    const res = await sample.json(PROMPT(blobs.length === 2), { images: blobs, modelTier: "default" });
+    const ls = Array.isArray(res?.lineas) ? res.lineas : [];
+    if (!ls.length) throw { code: "empty" };
+    const seen = new Set(); const rows = [];
+    for (const l of ls){
+      const k = String(l.codigo) + "|" + String(l.ean);
+      if (seen.has(k)) continue; seen.add(k);
+      rows.push([l.bulto || "Sin bulto", String(l.codigo || "").replace(/\D/g, ""), +l.cant || 0, String(l.um || "CS").toUpperCase(), String(l.ean || ""), String(l.desc || "").replace(/^-/, ""), num(l.precio), num(l.valor)]);
+    }
+    const g = makeGuia({ folio: res.folio, entrega: res.entrega, monto: num(res.montoTotal), l: rows });
+    const dup = S.guias.find(x => x.folio === g.folio && g.folio !== "s/n");
+    if (dup){ q.status = "lista"; q.msg = `La guía ${g.folio} ya estaba cargada. Quítala o bórrala antes de leerla de nuevo.`; renderQueue(); return; }
+    S.guias.push(g); save();
+    const ck = guiaCheck(g);
+    queue.splice(queue.indexOf(q), 1);
+    toast(`Guía ${g.folio}: ${g.lineas.length} líneas · ${ck.s === "ok" ? "monto cuadra" : "revisa: " + ck.t}`, null, null, ck.s !== "ok");
+    renderQueue(); render();
+  } catch (e){
+    q.status = "error";
+    const c = e?.code;
+    q.msg = c === "not_granted" ? "No se dio permiso para usar Claude en esta página."
+      : c === "rate_limited" ? "Demasiadas lecturas seguidas. Espera un momento y vuelve a intentar."
+      : c === "image_rejected" ? "La foto no sirve (formato o tamaño). Saca otra."
+      : c === "invalid_json" || c === "empty" ? "No pude sacar líneas de esta foto. Revisa que se vea la tabla completa y derecha."
+      : "Falló la lectura. Vuelve a intentar.";
+    renderQueue();
+  }
+}
+const num = v => typeof v === "number" ? v : +String(v ?? "").replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "") || 0;
+
+/* ---------- pestaña guías ---------- */
+const openG = new Set();
+function renderGuias(){
+  if (!S.guias.length){ $("#guiaList").innerHTML = `<div class="empty">Aún no hay palets. Fotografía las hojas de la guía arriba.</div>`; return; }
+  const groups = bultoGroups();
+  $("#guiaList").innerHTML = groups.map(p => {
+    const hojas = S.guias.filter(g => g.lineas.some(l => bkey(l.bulto) === p.k));
+    const malas = hojas.filter(g => guiaCheck(g).s !== "ok");
+    const dud = p.lines.filter(l => !gtinOk(l.ean)).length;
+    const valor = p.lines.reduce((a, l) => a + (+l.valor || 0), 0);
+    const cajas = p.lines.reduce((a, l) => a + l.cant, 0);
+    const pill = malas.length ? `<span class="pill bad">Revisar lectura</span>` : `<span class="pill ok">Lectura OK</span>`;
+    return `<div class="guia">
+      <div class="gh"><b class="num">N° de palet ${esc(plabel(p.k))}</b>${pill}</div>
+      <div class="facts"><span>${p.lines.length} productos</span><span class="num">${cajas} unidades de guía</span><span class="num">Valor $${fmt(valor)} + IVA</span>${dud ? `<span style="color:var(--warn)">${dud} código${dud > 1 ? "s" : ""} dudoso${dud > 1 ? "s" : ""}</span>` : ""}</div>
+      <div class="facts">Hojas: ${hojas.map(g => { const ck = guiaCheck(g); return `<span class="pill ${ck.s}" title="${esc(ck.t)}">${esc(g.folio)} ${ck.s === "ok" ? "✓" : "· " + esc(ck.t)}</span>`; }).join(" ")}</div>
+      <div class="row"><button class="btn small" data-tg="${p.k}">${openG.has(p.k) ? "Ocultar productos" : "Ver productos"}</button><button class="btn small ghost danger" data-dg="${p.k}">Borrar palet</button></div>
+      ${openG.has(p.k) ? `<div class="tablewrap"><table><thead><tr><th>Código</th><th class="r">Cant</th><th>UM</th><th>EAN/DUN</th><th>Descripción</th><th class="r">Valor</th></tr></thead><tbody>${p.lines.map(l =>
+        `<tr><td class="mono">${esc(l.codigo)}</td><td class="r mono">${l.cant}</td><td>${esc(l.um)}</td><td class="mono"${gtinOk(l.ean) ? "" : ' style="color:var(--warn)"'}>${esc(l.ean)}</td><td>${esc(l.desc)}</td><td class="r mono">${fmt(l.valor)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </div>`;
+  }).join("");
+}
+$("#guiaList").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.tg){ openG.has(b.dataset.tg) ? openG.delete(b.dataset.tg) : openG.add(b.dataset.tg); render(); }
+  if (b.dataset.dg){
+    if (b.dataset.armed){
+      for (const g of S.guias) g.lineas = g.lineas.filter(l => bkey(l.bulto) !== b.dataset.dg);
+      S.guias = S.guias.filter(g => g.lineas.length); save(); render();
+    } else { b.dataset.armed = 1; b.textContent = "¿Seguro? Toca otra vez"; }
+  }
+});
+$("#sampleBtn").onclick = () => {
+  for (const o of SAMPLE) if (!S.guias.some(g => g.folio === o.folio)) S.guias.push(makeGuia(o));
+  save(); toast("Cargué 2 hojas de ejemplo (guías 77015042 y 77015043)"); render();
+};
+$("#resetBtn").onclick = e => {
+  const b = e.currentTarget;
+  if (b.dataset.armed){ S = { guias: [], extras: {}, bulto: "all", onlyPending: false, tab: "guias" }; save(); delete b.dataset.armed; b.textContent = "Nueva recepción"; render(); toast("Recepción borrada"); }
+  else { b.dataset.armed = 1; b.textContent = "¿Borrar todo? Toca otra vez"; setTimeout(() => { delete b.dataset.armed; b.textContent = "Nueva recepción"; }, 4000); }
+};
+
+/* ---------- resumen ---------- */
+function summary(){
+  const L = allLines();
+  const falt = L.filter(l => l.n < l.cant && l.n > 0), sobr = L.filter(l => l.n > l.cant), sin = L.filter(l => l.n === 0), ok = L.filter(l => l.n === l.cant);
+  const uv = l => l.cant ? l.valor / l.cant : 0;
+  return { L, falt, sobr, sin, ok, uv };
+}
+function renderResumen(){
+  const { L, falt, sobr, sin, ok, uv } = summary();
+  const ex = Object.entries(S.extras);
+  const vFalt = [...falt, ...sin].reduce((a, l) => a + uv(l) * (l.cant - l.n), 0);
+  $("#stats").innerHTML = [
+    ["ok", ok.length, "líneas completas"],
+    ["warn", falt.length, "con faltantes"],
+    ["bad", sobr.length + ex.length, "sobrantes o fuera de guía"],
+    ["", sin.length, "sin contar"],
+  ].map(([c, n, t]) => `<div class="stat ${c}"><b class="num">${n}</b><span>${t}</span></div>`).join("");
+  const sec = (t, arr, f) => arr.length ? `<div class="diff"><h3>${t}</h3>${arr.map(f).join("")}</div>` : "";
+  const d = l => `<div class="d"><span>${esc(l.desc)}<small>${esc(l.codigo)} · ${esc(l.ean)}</small></span><span class="q">${l.n} de ${l.cant} ${esc(l.um)}</span></div>`;
+  $("#diffs").innerHTML = !L.length ? `<div class="empty">Carga guías y cuenta para ver el resumen.</div>` :
+    sec("Faltan", falt, d) + sec("Sobran", sobr, d) +
+    sec("No están en la guía", ex, ([c, n]) => `<div class="d"><span class="mono">${esc(c)}</span><span class="q">${n} caja${n > 1 ? "s" : ""}</span></div>`) +
+    sec(`Sin contar (${sin.length})`, sin.slice(0, 40), d) +
+    (vFalt ? `<p class="hint num">Valor de lo que falta o no se ha contado: $${fmt(vFalt)} neto.</p>` : "");
+  $("#outText").textContent = L.length ? textOut() : "";
+}
+function textOut(){
+  const { falt, sobr, sin, ok, L } = summary();
+  const ex = Object.entries(S.extras);
+  const ent = S.guias.find(g => g.entrega)?.entrega;
+  const fecha = new Date().toLocaleDateString("es-CL");
+  const ln = l => `- ${l.codigo} ${l.desc}: llegó ${l.n} de ${l.cant} ${l.um}`;
+  const exp = L.reduce((a, l) => a + l.cant, 0), got = L.reduce((a, l) => a + l.n, 0);
+  let t = `Recepción ${ent ? "entrega " + ent + " " : ""}${fecha}\nGuías: ${S.guias.map(g => g.folio).join(", ")}\nContado: ${got} de ${exp} · ${ok.length}/${L.length} líneas OK\n`;
+  if (falt.length) t += `\nFALTANTES\n${falt.map(ln).join("\n")}\n`;
+  if (sobr.length) t += `\nSOBRANTES\n${sobr.map(ln).join("\n")}\n`;
+  if (ex.length) t += `\nNO VIENEN EN GUÍA\n${ex.map(([c, n]) => `- ${c}: ${n} caja(s)`).join("\n")}\n`;
+  if (sin.length) t += `\nNO LLEGARON / SIN CONTAR\n${sin.map(ln).join("\n")}\n`;
+  if (!falt.length && !sobr.length && !ex.length && !sin.length) t += `\nTodo cuadra con la guía.\n`;
+  return t;
+}
+$("#copyBtn").onclick = async () => {
+  const txt = textOut();
+  try { await navigator.clipboard.writeText(txt); toast("Resumen copiado"); }
+  catch { const r = document.createRange(); r.selectNodeContents($("#outText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Texto seleccionado: cópialo con el menú del teléfono"); }
+};
+
+/* ---------- editar línea ---------- */
+let editing = null;
+function openEdit(id){
+  editing = findLine(id); if (!editing) return;
+  $("#eDesc").value = editing.desc; $("#eEan").value = editing.ean; $("#eCant").value = editing.cant; $("#eN").value = editing.n;
+  $("#eCod").value = editing.codigo; $("#eUm").value = ["CS", "UN", "PAK"].includes(editing.um) ? editing.um : "CS";
+  $("#eDel").textContent = "Borrar línea"; delete $("#eDel").dataset.armed;
+  $("#modal").hidden = false; $("#eCant").focus();
+}
+const closeEdit = () => { $("#modal").hidden = true; editing = null; };
+$("#eCancel").onclick = closeEdit;
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeEdit(); });
+$("#editForm").onsubmit = e => {
+  e.preventDefault(); if (!editing) return;
+  Object.assign(editing, { desc: $("#eDesc").value.trim(), ean: $("#eEan").value.replace(/\D/g, ""), cant: Math.max(0, +$("#eCant").value || 0), n: Math.max(0, +$("#eN").value || 0), codigo: $("#eCod").value.trim(), um: $("#eUm").value });
+  save(); closeEdit(); render();
+};
+$("#eDel").onclick = e => {
+  const b = e.currentTarget;
+  if (!b.dataset.armed){ b.dataset.armed = 1; b.textContent = "¿Seguro? Toca otra vez"; return; }
+  for (const g of S.guias) g.lineas = g.lineas.filter(l => l !== editing);
+  save(); closeEdit(); render();
+};
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg, btn, fn, bad){
+  const t = $("#toast"); $("#toastMsg").textContent = msg; t.classList.toggle("bad", !!bad);
+  const b = $("#toastBtn"); b.hidden = !btn; if (btn){ b.textContent = btn; b.onclick = () => { fn(); t.hidden = true; }; }
+  t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, btn ? 5000 : 2600);
+}
+
+/* ---------- pasar a la app instalada ---------- */
+async function encodeGuias(){
+  const data = { v: 1, guias: S.guias.map(g => ({ folio: g.folio, entrega: g.entrega, monto: g.monto,
+    l: g.lineas.map(l => [l.bulto, l.codigo, l.cant, l.um, l.ean, l.desc, l.precio, l.valor]) })) };
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  const gz = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+  let s = ""; for (let i = 0; i < gz.length; i += 0x8000) s += String.fromCharCode.apply(null, gz.subarray(i, i + 0x8000));
+  return "CHG1:" + btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function appUrlVal(){ try { return localStorage.getItem("chequeo-app-url") || ""; } catch { return ""; } }
+async function refreshOpenApp(){
+  const u = $("#appUrl").value.trim(), a = $("#openApp");
+  if (!/^https:\/\//.test(u) || !S.guias.length){ a.hidden = true; return; }
+  a.href = u.replace(/#.*$/, "") + "#importar=" + encodeURIComponent(await encodeGuias()); a.hidden = false;
+}
+$("#appUrl").value = appUrlVal();
+$("#appUrl").addEventListener("input", e => { try { localStorage.setItem("chequeo-app-url", e.target.value.trim()); } catch {} refreshOpenApp(); });
+$("#copyApp").onclick = async () => {
+  if (!S.guias.length){ toast("Primero lee al menos una hoja", null, null, true); return; }
+  const code = await encodeGuias();
+  const box = $("#codeOut"); box.value = code; box.hidden = false;
+  try { await navigator.clipboard.writeText(code); toast(`Copiado: ${S.guias.length} hoja${S.guias.length > 1 ? "s" : ""}. Ahora pégalo en la app.`); }
+  catch { box.focus(); box.select(); toast("Selecciona el código de abajo y cópialo con el menú del teléfono"); }
+};
+const _render = render; render = function(){ _render(); if (S.tab === "guias") refreshOpenApp(); };
+
+/* ---------- escáner en vivo ---------- */
+let stream = null, scanning = false, det = null, seen = {}, wake = null, actx = null, torchOn = false;
+function beep(ok){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = ok ? 1500 : 320; g.gain.value = 0.12; o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + (ok ? 0.09 : 0.25));
+  } catch {}
+  try { navigator.vibrate?.(ok ? 60 : [80, 60, 80]); } catch {}
+}
+function hud(){
+  const g = bultoGroups().find(x => x.k === S.bulto);
+  if (!g){ $("#hud").innerHTML = `Sin guías<small>Carga guías primero</small>`; return; }
+  const e = g.lines.reduce((a, l) => a + l.cant, 0), c = g.lines.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
+  $("#hud").innerHTML = `Palet ${esc(plabel(g.k))}<small>${c} de ${e} contados</small>`;
+}
+function validCode(c){
+  if ([8, 12, 13, 14].includes(c.length)) return gtinOk(c);
+  return c.length >= 9;
+}
+async function openScanner(){
+  $("#scanner").hidden = false; $("#scanLast").textContent = "Abriendo cámara…"; hud();
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume?.(); } catch {}
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  } catch {
+    $("#scanLast").textContent = "No pude abrir la cámara. Revisa que la app tenga permiso de cámara, o usa Foto."; return;
+  }
+  const v = $("#video"); v.srcObject = stream; try { await v.play(); } catch {}
+  const track = stream.getVideoTracks()[0];
+  try { const caps = track.getCapabilities?.(); $("#torchBtn").hidden = !caps?.torch; if (caps?.focusMode?.includes("continuous")) track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {}
+  if ("BarcodeDetector" in window && !det){
+    try {
+      const sup = await BarcodeDetector.getSupportedFormats();
+      const want = ["ean_13", "ean_8", "upc_a", "itf", "code_128"].filter(f => sup.includes(f));
+      if (want.length) det = new BarcodeDetector({ formats: want });
+    } catch {}
+  }
+  try { wake = await navigator.wakeLock?.request("screen"); } catch {}
+  $("#scanLast").textContent = det || window.ZXing ? "Apunta al código de barras de la caja" : "Este teléfono no puede leer códigos en vivo. Usa Foto.";
+  scanning = true; seen = {}; tick();
+}
+const fc = document.createElement("canvas");
+async function detectFrame(){
+  const v = $("#video"); if (!v.videoWidth) return [];
+  if (det){ try { return (await det.detect(v)).map(r => r.rawValue); } catch { return []; } }
+  if (!window.ZXing) return [];
+  const Z = window.ZXing, k = Math.min(1, 1280 / v.videoWidth);
+  fc.width = Math.round(v.videoWidth * k); fc.height = Math.round(v.videoHeight * k);
+  fc.getContext("2d").drawImage(v, 0, 0, fc.width, fc.height);
+  try {
+    const hints = new Map(); hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.ITF, Z.BarcodeFormat.CODE_128]);
+    const r = new Z.MultiFormatReader(); r.setHints(hints);
+    return [r.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(fc)))).getText()];
+  } catch { return []; }
+}
+async function tick(){
+  if (!scanning) return;
+  const now = Date.now();
+  for (const raw of await detectFrame()){
+    const c = String(raw).replace(/\D/g, "");
+    if (!validCode(c)) continue;
+    const prev = seen[c]; seen[c] = now;
+    if (prev && now - prev < 1000) continue; // la misma caja sigue frente a la cámara
+    const before = JSON.stringify([allLines().map(l => l.n), S.extras, S.bulto]);
+    const okMatch = handleCode(c);
+    const inGuide = okMatch && !S.extras[c];
+    const aim = $("#aim"); aim.className = "aim " + (inGuide ? "hit" : "miss"); setTimeout(() => aim.className = "aim", 450);
+    beep(inGuide);
+    $("#scanLast").textContent = before === JSON.stringify([allLines().map(l => l.n), S.extras, S.bulto]) ? `Leí ${c}, no calza con la guía` : $("#toastMsg").textContent;
+    hud();
+  }
+  setTimeout(tick, det ? 90 : 250);
+}
+function closeScanner(){
+  scanning = false;
+  try { stream?.getTracks().forEach(t => t.stop()); } catch {}
+  stream = null; torchOn = false; $("#torchBtn").textContent = "Linterna";
+  try { wake?.release(); } catch {} wake = null;
+  $("#scanner").hidden = true; render();
+}
+$("#liveBtn").onclick = () => { if (!allLines().length){ toast("Primero trae las guías desde Claude", null, null, true); setTab("guias"); return; } openScanner(); };
+$("#scanClose").onclick = closeScanner;
+$("#torchBtn").onclick = async () => {
+  torchOn = !torchOn;
+  try { await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: torchOn }] }); $("#torchBtn").textContent = torchOn ? "Apagar luz" : "Linterna"; } catch { torchOn = false; }
+};
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && scanning && !wake){ try { wake = await navigator.wakeLock?.request("screen"); } catch {} }
+});
+window.addEventListener("popstate", () => { if (scanning) closeScanner(); });
+
+/* ---------- traer guías desde Claude ---------- */
+async function decodeGuias(text){
+  const m = String(text).match(/CHG1:([A-Za-z0-9_-]+)/); if (!m) throw new Error("sin código");
+  let b = m[1].replace(/-/g, "+").replace(/_/g, "/"); while (b.length % 4) b += "=";
+  const bin = atob(b), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  const txt = await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  const d = JSON.parse(txt); if (!Array.isArray(d.guias)) throw new Error("formato");
+  return d;
+}
+function importGuias(d){
+  let add = 0, skip = 0;
+  for (const o of d.guias){
+    if (S.guias.some(g => g.folio === String(o.folio) && g.folio !== "s/n")){ skip++; continue; }
+    S.guias.push(makeGuia(o)); add++;
+  }
+  save(); render();
+  const pal = bultoGroups().length;
+  toast(add ? `Llegaron ${add} hoja${add > 1 ? "s" : ""} · ${pal} palet${pal > 1 ? "s" : ""}${skip ? ` (${skip} ya estaba${skip > 1 ? "n" : ""})` : ""}` : "Esas hojas ya estaban cargadas");
+  if (add){ $("#pasteIn").hidden = true; $("#pasteIn").value = ""; setTimeout(() => setTab("revisar"), 900); }
+}
+async function tryImport(text){
+  try { importGuias(await decodeGuias(text)); return true; }
+  catch { toast("Eso no parece un código de Claude. Vuelve a tocar \"Copiar para la app\" en Claude.", null, null, true); return false; }
+}
+$("#pasteBtn").onclick = async () => {
+  try { const txt = await navigator.clipboard.readText(); if (txt && txt.includes("CHG1:")){ await tryImport(txt); return; } } catch {}
+  const ta = $("#pasteIn"); ta.hidden = false; ta.focus();
+  toast("Mantén presionado el recuadro y elige Pegar");
+};
+$("#pasteIn").addEventListener("input", e => { if (e.target.value.includes("CHG1:")) tryImport(e.target.value); });
+if (location.hash.startsWith("#importar=")){
+  const code = decodeURIComponent(location.hash.slice(10));
+  history.replaceState(null, "", location.pathname);
+  setTimeout(() => tryImport(code), 50);
+}
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+
+/* inicio: si no hay nada, muestra el ejemplo marcado como tal */
+if (S.bulto === "all") S.bulto = "";
+if (!S.guias.length && !load()){ for (const o of SAMPLE) S.guias.push(makeGuia(o)); S.sample = true; save(); }
+setTab(S.guias.length ? (S.tab || "revisar") : "guias");
+})();
+</script>
+
+</body>
+</html>
