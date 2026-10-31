@@ -95,6 +95,8 @@ label.toggle input{width:18px;height:18px;accent-color:var(--ink)}
 .item[data-s="ok"] .stripe{background:var(--ok)}
 .item[data-s="part"] .stripe{background:var(--warn)}
 .item[data-s="over"] .stripe{background:var(--bad)}
+.item[data-rev] {border-color:var(--warn);background:linear-gradient(var(--warn-soft),var(--warn-soft)) top/100% 0 no-repeat,var(--surface)}
+.item[data-rev] .stripe{background:repeating-linear-gradient(45deg,var(--warn) 0 6px,var(--warn-soft) 6px 12px)}
 .item.flash{animation:flash .9s ease-out}
 @keyframes flash{from{box-shadow:0 0 0 3px var(--ink)}to{box-shadow:0 0 0 0 transparent}}
 .item .info{padding:10px 0;min-width:0;display:grid;gap:3px}
@@ -161,22 +163,29 @@ pre.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--li
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--fg);color:var(--bg);border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;max-width:min(560px,calc(100vw - 32px));box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14.5px}
 .toast.bad{background:var(--bad);color:#fff}
 .toast button{background:transparent;border:1px solid currentColor;border-radius:8px;padding:6px 10px;font-weight:600;flex:none}
-.modal{position:fixed;inset:0;z-index:30;background:rgba(10,15,25,.55);display:grid;place-items:end center;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{position:fixed;inset:0;z-index:70;background:rgba(10,15,25,.55);display:grid;place-items:end center;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .sheet{background:var(--surface);border-radius:14px;padding:16px;width:min(520px,100%);display:grid;gap:12px;max-height:90vh;overflow:auto}
 .sheet label{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
 .sheet .field{min-height:44px;font-size:15px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.scanner{position:fixed;inset:0;z-index:50;background:#000;color:#fff;display:grid;grid-template-rows:auto 1fr auto}
+.scanner{position:fixed;inset:0;z-index:50;background:#000;display:grid;grid-template-rows:1fr 1fr}
+.scanner .cam{position:relative;overflow:hidden;color:#fff;display:grid;grid-template-rows:auto 1fr auto;min-height:0}
 .scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.scanner .bar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;background:rgba(0,0,0,.6);padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.scanner .bar.bottom{padding-top:12px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.scanner .bar{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;background:rgba(0,0,0,.6);padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.scanner .bar.bottom{padding-top:6px;padding-bottom:6px;justify-content:flex-end;background:transparent}
+.scanpanel{background:var(--bg);color:var(--fg);overflow:auto;min-height:0;display:grid;align-content:start;gap:10px;padding-top:12px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-top:3px solid var(--line)}
+.scanpanel.ok{border-top-color:var(--ok)} .scanpanel.bad{border-top-color:var(--bad)} .scanpanel.warn{border-top-color:var(--warn)}
+.scanstatus{font-family:var(--f-display);font-size:22px;font-weight:700;line-height:1.15;padding:8px 12px;border-radius:10px;background:var(--sunken);color:var(--fg)}
+.scanstatus small{display:block;font-family:var(--f-body);font-size:13px;font-weight:500;opacity:.85}
+.scanstatus.ok{background:var(--ok-soft);color:var(--ok)} .scanstatus.bad{background:var(--bad-soft);color:var(--bad)} .scanstatus.warn{background:var(--warn-soft);color:var(--warn)}
+.scanpanel .item .counter button{width:56px;height:56px;font-size:26px}
+.scanpanel .item .counter{grid-template-columns:56px auto 56px}
 .scanner .hud{font-family:var(--f-display);font-size:22px;font-weight:700}
 .scanner .hud small{display:block;font-family:var(--f-body);font-size:13px;font-weight:400;opacity:.8}
-.scanner .aim{position:relative;z-index:1;align-self:center;justify-self:center;width:min(78vw,420px);aspect-ratio:2.2/1;max-width:100%;border:3px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35);transition:border-color .15s}
+.scanner .aim{position:relative;z-index:1;align-self:center;justify-self:center;width:min(70vw,380px);aspect-ratio:2.4/1;max-width:100%;border:3px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.35);transition:border-color .15s}
 .scanner .aim.hit{border-color:#4cc27a}
 .scanner .aim.miss{border-color:#f2767b}
-.scanner .last{position:relative;z-index:1;font-size:15px;min-height:1.4em;flex:1;min-width:0;overflow-wrap:anywhere}
-.scanner button,.scanner label{flex:none;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-weight:600;display:inline-flex;align-items:center}
+.scanner .cam button,.scanner .cam label{flex:none;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;font-weight:600;display:inline-flex;align-items:center}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -286,11 +295,13 @@ pre.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--li
 </main>
 
 <div class="scanner" id="scanner" hidden>
-  <video id="video" playsinline muted></video>
-  <div class="bar"><div class="hud" id="hud">Palet<small>—</small></div><button id="scanClose">Cerrar</button></div>
-  <div class="aim" id="aim"></div>
-  <div class="bar bottom"><span class="last" id="scanLast">Apunta al código de barras de la caja</span>
-    <button id="torchBtn" hidden>Linterna</button><label for="scanIn">Foto</label></div>
+  <div class="cam">
+    <video id="video" playsinline muted></video>
+    <div class="bar"><div class="hud" id="hud">Palet<small>—</small></div><button id="scanClose">Cerrar</button></div>
+    <div class="aim" id="aim"></div>
+    <div class="bar bottom"><button id="torchBtn" hidden>Linterna</button><label for="scanIn">Foto</label></div>
+  </div>
+  <div class="scanpanel" id="scanPanel"><div class="scanstatus" id="scanLast">Apunta al código de barras de la caja<small>El producto escaneado aparecerá aquí</small></div></div>
 </div>
 
 <div id="toast" class="toast" hidden role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
@@ -336,17 +347,18 @@ const allLines = () => S.guias.flatMap(g => g.lineas);
 /* N° de palet canónico: el número 7000… sin el 7 ni los ceros iniciales, así "70000000016156839" y "700000000016156839" son el mismo palet.
    Si una hoja trae solo el número 1012…, se usa el palet que ese mismo número tiene en otra hoja. */
 let ALIAS = {};
+function palDigits(d){ return /^[78]0{3,}/.test(d) ? d.slice(1).replace(/^0+/, "") : d.replace(/^0+/, ""); }
 function splitB(b){
   const p = String(b || "").split("/").map(x => x.replace(/\D/g, "")).filter(Boolean);
-  let pal = p.find(x => x.length >= 12 && x[0] === "7") || (p.length > 1 ? p[1] : "");
+  let pal = p.find(x => x.length >= 12 && /^[78]0{3,}/.test(x)) || (p.length > 1 ? p[1] : "");
   const doc = p.find(x => x !== pal) || "";
-  return { pal: pal ? (pal.replace(/^7/, "").replace(/^0+/, "") || pal) : "", doc };
+  return { pal: pal ? (palDigits(pal) || pal) : "", doc };
 }
 function rebuildAlias(){
   ALIAS = {};
   for (const g of S.guias) for (const l of g.lineas){ const s = splitB(l.bulto); if (s.pal && s.doc) ALIAS[s.doc] = s.pal; }
 }
-const palDigits = d => d.replace(/^7/, "").replace(/^0+/, "");
+
 const bkey = b => { const s = splitB(b); return s.pal || ALIAS[s.doc] || s.doc || "sinpalet"; };
 const plabel = k => k === "sinpalet" ? "Sin palet" : k.slice(-4);
 function state(l){ if (!l.n) return "none"; if (l.n === l.cant) return "ok"; return l.n > l.cant ? "over" : "part"; }
@@ -445,24 +457,32 @@ function renderRevisar(){
     if (S.orden === "asc") ls.sort((a, b) => a.valor - b.valor);
     if (!ls.length) continue;
     const e = g.lines.reduce((a, l) => a + l.cant, 0), c = g.lines.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
-    html += `<div class="bhead"><b>Palet ${esc(plabel(g.k))}</b><span class="num">${c}/${e}</span></div>`;
+    const nr = g.lines.filter(l => l.rev).length;
+    html += `<div class="bhead"><b>Palet ${esc(plabel(g.k))}</b><span class="num">${nr ? `<span class="pill warn">${nr} por revisar</span> ` : ""}${c}/${e}</span></div>`;
     html += ls.map(lineHtml).join("");
   }
   $("#lines").innerHTML = html || `<div class="empty">${q ? "Nada coincide con la búsqueda en este palet." : "Todo este palet está completo."}</div>`;
 }
 
+function dupNote(l){
+  const same = allLines().filter(x => x !== l && bkey(x.bulto) === bkey(l.bulto) && (x.codigo === l.codigo || (x.ean && x.ean === l.ean)));
+  if (!same.length) return "";
+  const tot = same.reduce((a, x) => a + x.cant, l.cant);
+  return `<span class="warnline" style="color:var(--muted)">Aparece ${same.length + 1} veces en este palet · total ${tot} ${esc(l.um)}</span>`;
+}
 function lineHtml(l){
   const s = state(l);
   const e = l.ean, tail = e.slice(-5), head = e.slice(0, -5);
   const per = l.cant && l.precio ? Math.round(l.valor / (l.cant * l.precio)) : 0;
   const warn = !gtinOk(e) ? `<span class="warnline">Código dudoso: puede estar mal leído, revísalo contra la guía</span>` : "";
-  return `<div class="item" data-s="${s}" data-id="${l.id}">
+  return `<div class="item" data-s="${s}"${l.rev ? ' data-rev="1"' : ""} data-id="${l.id}">
     <span class="stripe"></span>
     <div class="info">
-      <span class="desc">${esc(l.desc)}</span>
+      <span class="desc">${l.rev ? `<span class="pill warn" style="margin-right:6px">Por revisar</span>` : ""}${esc(l.desc)}</span>
       <span class="codes"><span class="ean">${esc(head)}<b>${esc(tail)}</b></span><span>Cód. ${esc(l.codigo)}</span>${per > 1 ? `<span>${per} un/${esc(l.um)}</span>` : ""}<span>Total $${fmt(l.valor)}</span></span>
       ${warn}
-      <button class="edit" data-edit="${l.id}">Editar</button>
+      ${dupNote(l)}
+      <span class="row" style="gap:16px"><button class="edit" data-edit="${l.id}">Editar</button><button class="edit" data-rev="${l.id}">${l.rev ? "Quitar por revisar" : "Por revisar"}</button></span>
     </div>
     <div class="counter">
       <button aria-label="Restar uno" data-m="${l.id}">−</button>
@@ -477,6 +497,7 @@ $("#lines").addEventListener("click", e => {
   if (t.dataset.p) bump(t.dataset.p, 1);
   else if (t.dataset.m) bump(t.dataset.m, -1);
   else if (t.dataset.edit) openEdit(t.dataset.edit);
+  else if (t.dataset.rev){ const l = findLine(t.dataset.rev); l.rev = !l.rev; save(); render(); toast(l.rev ? "Marcado por revisar" : "Quitado de por revisar"); }
 });
 $("#lines").addEventListener("dblclick", e => {
   const it = e.target.closest(".item"); if (!it || e.target.closest("button")) return;
@@ -665,13 +686,17 @@ async function readOne(q){
     const res = await sample.json(PROMPT(blobs.length === 2), { images: blobs, modelTier: "default" });
     const ls = Array.isArray(res?.lineas) ? res.lineas : [];
     if (!ls.length) throw { code: "empty" };
-    const seen = new Set(); const rows = [];
+    let rows = [];
     for (const l of ls){
-      const k = String(l.codigo) + "|" + String(l.ean);
-      if (seen.has(k)) continue; seen.add(k);
       rows.push([l.bulto || "Sin bulto", String(l.codigo || "").replace(/\D/g, ""), +l.cant || 0, String(l.um || "CS").toUpperCase(), String(l.ean || ""), String(l.desc || "").replace(/^-/, ""), num(l.precio), num(l.valor)]);
     }
-    const g = makeGuia({ folio: res.folio, entrega: res.entrega, monto: num(res.montoTotal), l: rows });
+    const monto = num(res.montoTotal);
+    const fits = rs => { const s = rs.reduce((a, r) => a + r[7], 0); return monto && (Math.abs(Math.round(s * 1.19) - monto) <= 3 || Math.abs(s - monto) <= 3); };
+    if (!fits(rows)){
+      const seen = new Set(), ded = rows.filter(r => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
+      if (ded.length < rows.length && fits(ded)) rows = ded;
+    }
+    const g = makeGuia({ folio: res.folio, entrega: res.entrega, monto, l: rows });
     const dup = S.guias.find(x => x.folio === g.folio && g.folio !== "s/n");
     if (dup){ q.status = "lista"; q.msg = `La guía ${g.folio} ya estaba cargada. Quítala o bórrala antes de leerla de nuevo.`; renderQueue(); return; }
     S.guias.push(g); save();
@@ -737,12 +762,13 @@ $("#resetBtn").onclick = e => {
 /* ---------- resumen ---------- */
 function summary(){
   const L = allLines();
+  const rev = L.filter(l => l.rev);
   const falt = L.filter(l => l.n < l.cant && l.n > 0), sobr = L.filter(l => l.n > l.cant), sin = L.filter(l => l.n === 0), ok = L.filter(l => l.n === l.cant);
   const uv = l => l.cant ? l.valor / l.cant : 0;
-  return { L, falt, sobr, sin, ok, uv };
+  return { L, falt, sobr, sin, ok, uv, rev };
 }
 function renderResumen(){
-  const { L, falt, sobr, sin, ok, uv } = summary();
+  const { L, falt, sobr, sin, ok, uv, rev } = summary();
   const ex = Object.entries(S.extras);
   const vFalt = [...falt, ...sin].reduce((a, l) => a + uv(l) * (l.cant - l.n), 0);
   $("#stats").innerHTML = [
@@ -750,24 +776,26 @@ function renderResumen(){
     ["warn", falt.length, "con faltantes"],
     ["bad", sobr.length + ex.length, "sobrantes o fuera de guía"],
     ["", sin.length, "sin contar"],
+    ["warn", rev.length, "por revisar"],
   ].map(([c, n, t]) => `<div class="stat ${c}"><b class="num">${n}</b><span>${t}</span></div>`).join("");
   const sec = (t, arr, f) => arr.length ? `<div class="diff"><h3>${t}</h3>${arr.map(f).join("")}</div>` : "";
   const d = l => `<div class="d"><span>${esc(l.desc)}<small>${esc(l.codigo)} · ${esc(l.ean)}</small></span><span class="q">${l.n} de ${l.cant} ${esc(l.um)}</span></div>`;
   $("#diffs").innerHTML = !L.length ? `<div class="empty">Carga guías y cuenta para ver el resumen.</div>` :
-    sec("Faltan", falt, d) + sec("Sobran", sobr, d) +
+    sec("Por revisar", rev, d) + sec("Faltan", falt, d) + sec("Sobran", sobr, d) +
     sec("No están en la guía", ex, ([c, n]) => `<div class="d"><span class="mono">${esc(c)}</span><span class="q">${n} caja${n > 1 ? "s" : ""}</span></div>`) +
     sec(`Sin contar (${sin.length})`, sin.slice(0, 40), d) +
     (vFalt ? `<p class="hint num">Valor de lo que falta o no se ha contado: $${fmt(vFalt)} neto.</p>` : "");
   $("#outText").textContent = L.length ? textOut() : "";
 }
 function textOut(){
-  const { falt, sobr, sin, ok, L } = summary();
+  const { falt, sobr, sin, ok, L, rev } = summary();
   const ex = Object.entries(S.extras);
   const ent = S.guias.find(g => g.entrega)?.entrega;
   const fecha = new Date().toLocaleDateString("es-CL");
   const ln = l => `- ${l.codigo} ${l.desc}: llegó ${l.n} de ${l.cant} ${l.um}`;
   const exp = L.reduce((a, l) => a + l.cant, 0), got = L.reduce((a, l) => a + l.n, 0);
   let t = `Recepción ${ent ? "entrega " + ent + " " : ""}${fecha}\nGuías: ${S.guias.map(g => g.folio).join(", ")}\nContado: ${got} de ${exp} · ${ok.length}/${L.length} líneas OK\n`;
+  if (rev.length) t += `\nPOR REVISAR (al desarmar el palet)\n${rev.map(ln).join("\n")}\n`;
   if (falt.length) t += `\nFALTANTES\n${falt.map(ln).join("\n")}\n`;
   if (sobr.length) t += `\nSOBRANTES\n${sobr.map(ln).join("\n")}\n`;
   if (ex.length) t += `\nNO VIENEN EN GUÍA\n${ex.map(([c, n]) => `- ${c}: ${n} caja(s)`).join("\n")}\n`;
@@ -808,6 +836,7 @@ $("#eDel").onclick = e => {
 /* ---------- toast ---------- */
 let tt;
 function toast(msg, btn, fn, bad){
+  if (window.__scanOn) return;
   const t = $("#toast"); $("#toastMsg").textContent = msg; t.classList.toggle("bad", !!bad);
   const b = $("#toastBtn"); b.hidden = !btn; if (btn){ b.textContent = btn; b.onclick = () => { fn(); t.hidden = true; }; }
   t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, btn ? 5000 : 2600);
@@ -861,12 +890,13 @@ function validCode(c){
   return c.length >= 9;
 }
 async function openScanner(){
-  $("#scanner").hidden = false; $("#scanLast").textContent = "Abriendo cámara…"; hud();
+  $("#scanner").hidden = false; panelShow = null; $("#scanPanel").className = "scanpanel";
+  $("#scanPanel").innerHTML = `<div class="scanstatus" id="scanLast">Abriendo cámara…</div>`; hud();
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume?.(); } catch {}
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
   } catch {
-    $("#scanLast").textContent = "No pude abrir la cámara. Revisa que la app tenga permiso de cámara, o usa Foto."; return;
+    $("#scanLast").innerHTML = "No pude abrir la cámara<small>Revisa que la app tenga permiso de cámara, o usa Foto.</small>"; return;
   }
   const v = $("#video"); v.srcObject = stream; try { await v.play(); } catch {}
   const track = stream.getVideoTracks()[0];
@@ -879,8 +909,8 @@ async function openScanner(){
     } catch {}
   }
   try { wake = await navigator.wakeLock?.request("screen"); } catch {}
-  $("#scanLast").textContent = det || window.ZXing ? "Apunta al código de barras de la caja" : "Este teléfono no puede leer códigos en vivo. Usa Foto.";
-  scanning = true; seen = {}; tick();
+  $("#scanLast").innerHTML = det || window.ZXing ? "Apunta al código de barras de la caja<small>El producto escaneado aparecerá aquí, con sus botones</small>" : "Este teléfono no puede leer códigos en vivo. Usa Foto.";
+  scanning = true; window.__scanOn = true; seen = {}; tick();
 }
 const fc = document.createElement("canvas");
 async function detectFrame(){
@@ -904,18 +934,61 @@ async function tick(){
     if (!validCode(c)) continue;
     const prev = seen[c]; seen[c] = now;
     if (prev && now - prev < 1000) continue; // la misma caja sigue frente a la cámara
-    const before = JSON.stringify([allLines().map(l => l.n), S.extras, S.bulto]);
-    const okMatch = handleCode(c);
-    const inGuide = okMatch && !S.extras[c];
-    const aim = $("#aim"); aim.className = "aim " + (inGuide ? "hit" : "miss"); setTimeout(() => aim.className = "aim", 450);
-    beep(inGuide);
-    $("#scanLast").textContent = before === JSON.stringify([allLines().map(l => l.n), S.extras, S.bulto]) ? `Leí ${c}, no calza con la guía` : $("#toastMsg").textContent;
-    hud();
+    const nb = new Map(allLines().map(l => [l.id, l.n])), exB = S.extras[c] || 0, palB = S.bulto;
+    handleCode(c);
+    const hit = allLines().find(l => l.n !== nb.get(l.id));
+    let kind;
+    if (hit) panelShow = { type: "line", id: hit.id, unit: pad14(hit.ean) !== pad14(c) && hit.codigo !== c, moved: S.bulto !== palB };
+    else if ((S.extras[c] || 0) > exB) panelShow = { type: "extra", code: c };
+    else if (S.bulto !== palB) panelShow = { type: "palet" };
+    else panelShow = { type: "nomatch", code: c };
+    const good = panelShow.type === "line" || panelShow.type === "palet";
+    const aim = $("#aim"); aim.className = "aim " + (good ? "hit" : "miss"); setTimeout(() => aim.className = "aim", 450);
+    beep(good);
+    renderPanel(true);
   }
   setTimeout(tick, det ? 90 : 250);
 }
+
+/* mitad inferior: el producto recién escaneado, con sus botones */
+let panelShow = null;
+function renderPanel(fresh){
+  const P = $("#scanPanel"); hud();
+  if (!panelShow){ P.className = "scanpanel"; return; }
+  let st = "", cls = "", body = "";
+  if (panelShow.type === "line"){
+    const l = findLine(panelShow.id);
+    if (!l){ panelShow = null; return renderPanel(); }
+    const s = state(l);
+    cls = s === "ok" ? "ok" : s === "over" ? "bad" : "warn";
+    st = s === "ok" ? "✓ Completo" : s === "over" ? `Sobra: ${l.n} de ${l.cant}` : `En la guía · ${l.n} de ${l.cant}`;
+    const sub = s === "over" ? "Llegaron más cajas de las que dice la guía" : s === "ok" ? `Están todas las ${esc(l.um)} de esta línea` : `Faltan ${l.cant - l.n} ${esc(l.um)}`;
+    st += `<small>${panelShow.moved ? `Ojo: es del palet ${esc(plabel(S.bulto))}, cambié a ese palet · ` : ""}${panelShow.unit ? "Leí el código de la unidad y sumé 1 caja · " : ""}${sub}</small>`;
+    if (panelShow.moved) cls = "warn";
+    body = lineHtml(l);
+  } else if (panelShow.type === "extra"){
+    cls = "bad"; st = `✗ No está en la guía<small>Código ${esc(panelShow.code)} · ${S.extras[panelShow.code] || 0} caja(s) anotada(s) como fuera de guía</small>`;
+    body = S.extras[panelShow.code] ? `<div class="row"><button class="btn danger" data-rmx="${esc(panelShow.code)}">Quitar 1 (lo escaneé por error)</button></div>` : "";
+  } else if (panelShow.type === "palet"){
+    cls = "ok"; st = `Palet ${esc(plabel(S.bulto))}<small>Ahora estás revisando este palet</small>`;
+  } else {
+    cls = "bad"; st = `✗ No calza con la guía<small>Leí ${esc(panelShow.code)}. Revisa el código o súmalo a mano.</small>`;
+  }
+  P.className = "scanpanel " + cls;
+  P.innerHTML = `<div class="scanstatus ${cls}">${st}</div>${body}`;
+  if (fresh){ const it = P.querySelector(".item"); if (it){ it.classList.remove("flash"); void it.offsetWidth; it.classList.add("flash"); } P.scrollTop = 0; }
+}
+$("#scanPanel").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.p){ const l = findLine(t.dataset.p); l.n++; save(); render(); }
+  else if (t.dataset.m){ const l = findLine(t.dataset.m); l.n = Math.max(0, l.n - 1); save(); render(); }
+  else if (t.dataset.edit) openEdit(t.dataset.edit);
+  else if (t.dataset.rev){ const l = findLine(t.dataset.rev); l.rev = !l.rev; save(); render(); }
+  else if (t.dataset.rmx){ const c = t.dataset.rmx; if (--S.extras[c] <= 0) delete S.extras[c]; save(); render(); }
+});
+{ const r0 = render; render = function(){ r0(); if (scanning || !$("#scanner").hidden) renderPanel(); }; }
 function closeScanner(){
-  scanning = false;
+  scanning = false; window.__scanOn = false;
   try { stream?.getTracks().forEach(t => t.stop()); } catch {}
   stream = null; torchOn = false; $("#torchBtn").textContent = "Linterna";
   try { wake?.release(); } catch {} wake = null;
