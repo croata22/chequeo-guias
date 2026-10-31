@@ -82,6 +82,7 @@ h2{font-family:var(--f-display);font-weight:700;font-size:21px;margin:0;letter-s
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
 .chip .c{font-family:var(--f-mono);font-weight:400;opacity:.85}
 .chip.done::after{content:"✓";font-weight:700}
+.chip[data-b="__all"]{letter-spacing:.06em;text-transform:uppercase}
 label.toggle{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
 label.toggle input{width:18px;height:18px;accent-color:var(--ink)}
 
@@ -157,6 +158,27 @@ td.r,th.r{text-align:right}
 .diff .d{display:grid;grid-template-columns:1fr auto;gap:8px;padding:8px 12px;border-top:1px solid var(--line);font-size:14px}
 .diff .d small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:12px}
 .diff .d .q{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+/* guía estilo papel */
+.paper{background:#fff;color:#111;border:1px solid #9aa3b0;border-radius:4px;padding:10px;display:grid;gap:6px;font-size:12px}
+.paper h3{margin:0;font-size:14px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px}
+.paper h3 span{font-weight:400;color:#444}
+.paper .tw{overflow-x:auto}
+.paper table{border-collapse:collapse;width:100%;font-size:11px;color:#111}
+.paper th{background:#e9ecf1;color:#111;border:1px solid #444;padding:4px 6px;text-align:center;font-weight:700}
+.paper td{border-left:1px solid #444;border-right:1px solid #444;padding:2px 6px;vertical-align:top;white-space:nowrap}
+.paper tr:last-child td{border-bottom:1px solid #444}
+.paper td.r{text-align:right;font-variant-numeric:tabular-nums}
+.paper td.c{text-align:center}
+.paper td.d{white-space:normal;min-width:120px;overflow-wrap:anywhere}
+.paper td.m{text-align:center;font-size:16px;font-weight:700;padding:2px 3px}
+.paper td.m.ok{color:#17803d} .paper td.m.bad,.paper td.m.none{color:#c0262d} .paper td.m.rev{color:#a65d00}
+@media (max-width:520px){.paper .hide-s{display:none}}
+.paper td.d small{display:block;font-family:var(--f-mono);color:#555;font-size:10.5px}
+.paper tr.ph td{font-weight:700;font-family:var(--f-mono);font-size:11px;padding-top:6px;background:#f4f5f7}
+.paper .st{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:11px}
+.paper .st.ok{color:#17803d} .paper .st.bad{color:#c0262d} .paper .st.rev{color:#a65d00} .paper .st.none{color:#c0262d}
+.paper .mk{font-size:15px;line-height:1}
+.paper tr.bad td{background:#fdf0f0} .paper tr.rev td{background:#fdf5e8}
 pre.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--f-mono);font-size:12.5px;margin:0;max-height:300px;overflow:auto}
 
 /* Toast + modal */
@@ -283,6 +305,11 @@ pre.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--li
   <!-- RESUMEN -->
   <section class="panel" id="p-resumen" hidden>
     <div class="stats" id="stats"></div>
+    <div class="row">
+      <button class="btn" id="guideBtn" aria-expanded="false">Ver guía con ✓ y ✗</button>
+      <button class="btn primary" id="pdfBtn">Descargar PDF</button>
+    </div>
+    <div id="guideView" hidden></div>
     <div id="diffs" class="list"></div>
     <div class="row" style="justify-content:space-between">
       <h2>Texto para enviar</h2>
@@ -423,14 +450,14 @@ function bultoGroups(){
 
 function renderRevisar(){
   const groups = bultoGroups();
-  if (!groups.some(g => g.k === S.bulto)) S.bulto = groups[0]?.k || "";
+  if (S.bulto !== "__all" && !groups.some(g => g.k === S.bulto)) S.bulto = groups[0]?.k || "";
   const L = allLines();
   const chip = (k, name, ls) => {
     const e = ls.reduce((a, l) => a + l.cant, 0), c = ls.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
     const done = ls.length && ls.every(l => state(l) === "ok");
     return `<button class="chip${done ? " done" : ""}" data-b="${k}" aria-pressed="${S.bulto === k}">Palet ${esc(name)} <span class="c">${c}/${e}</span></button>`;
   };
-  $("#bultos").innerHTML = groups.map(g => chip(g.k, plabel(g.k), g.lines)).join("");
+  $("#bultos").innerHTML = (groups.length ? chip("__all", "", L).replace(">Palet  <", ">Lista <") : "") + groups.map(g => chip(g.k, plabel(g.k), g.lines)).join("");
   for (const b of $("#bultos").querySelectorAll(".chip")) b.onclick = () => { S.bulto = b.dataset.b; save(); render(); };
   $("#onlyPending").checked = S.onlyPending;
   $("#orden").value = S.orden || "guia";
@@ -448,7 +475,8 @@ function renderRevisar(){
   const q = $("#codeIn").value.trim().toLowerCase();
   const qd = q.replace(/\D/g, "");
   let html = "";
-  for (const g of groups){
+  const view = S.bulto === "__all" ? [{ k: "__all", lines: L }] : groups;
+  for (const g of view){
     if (g.k !== S.bulto) continue;
     let ls = g.lines.slice();
     if (q) ls = ls.filter(l => l.desc.toLowerCase().includes(q) || (qd.length >= 3 && (l.ean.includes(qd) || l.codigo.includes(qd))));
@@ -458,10 +486,10 @@ function renderRevisar(){
     if (!ls.length) continue;
     const e = g.lines.reduce((a, l) => a + l.cant, 0), c = g.lines.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
     const nr = g.lines.filter(l => l.rev).length;
-    html += `<div class="bhead"><b>Palet ${esc(plabel(g.k))}</b><span class="num">${nr ? `<span class="pill warn">${nr} por revisar</span> ` : ""}${c}/${e}</span></div>`;
+    html += `<div class="bhead"><b>${g.k === "__all" ? `Lista completa · ${g.lines.length} productos` : "Palet " + esc(plabel(g.k))}</b><span class="num">${nr ? `<span class="pill warn">${nr} por revisar</span> ` : ""}${c}/${e}</span></div>`;
     html += ls.map(lineHtml).join("");
   }
-  $("#lines").innerHTML = html || `<div class="empty">${q ? "Nada coincide con la búsqueda en este palet." : "Todo este palet está completo."}</div>`;
+  $("#lines").innerHTML = html || `<div class="empty">${q ? (S.bulto === "__all" ? "Nada coincide con la búsqueda." : "Nada coincide con la búsqueda en este palet.") : (S.bulto === "__all" ? "Todo está completo." : "Todo este palet está completo.")}</div>`;
 }
 
 function dupNote(l){
@@ -479,7 +507,7 @@ function lineHtml(l){
     <span class="stripe"></span>
     <div class="info">
       <span class="desc">${l.rev ? `<span class="pill warn" style="margin-right:6px">Por revisar</span>` : ""}${esc(l.desc)}</span>
-      <span class="codes"><span class="ean">${esc(head)}<b>${esc(tail)}</b></span><span>Cód. ${esc(l.codigo)}</span>${per > 1 ? `<span>${per} un/${esc(l.um)}</span>` : ""}<span>Total $${fmt(l.valor)}</span></span>
+      <span class="codes"><span class="ean">${esc(head)}<b>${esc(tail)}</b></span><span>Cód. ${esc(l.codigo)}</span>${per > 1 ? `<span>${per} un/${esc(l.um)}</span>` : ""}<span>Total $${fmt(l.valor)}</span>${S.bulto === "__all" ? `<span>Palet ${esc(plabel(bkey(l.bulto)))}</span>` : ""}</span>
       ${warn}
       ${dupNote(l)}
       <span class="row" style="gap:16px"><button class="edit" data-edit="${l.id}">Editar</button><button class="edit" data-rev="${l.id}">${l.rev ? "Quitar por revisar" : "Por revisar"}</button></span>
@@ -528,10 +556,10 @@ function handleCode(raw){
   }
   const L = allLines();
   const pick = arr => {
-    const inB = arr.filter(l => bkey(l.bulto) === S.bulto);
+    const inB = S.bulto === "__all" ? arr : arr.filter(l => bkey(l.bulto) === S.bulto);
     const pool = inB.length ? inB : arr;
     const l = pool.find(x => x.n < x.cant) || pool[0];
-    if (bkey(l.bulto) !== S.bulto){ S.bulto = bkey(l.bulto); setTimeout(() => toast(`Ojo: ese producto es del palet ${plabel(S.bulto)}. Cambié a ese palet.`, null, null, true), 2700); }
+    if (S.bulto !== "__all" && bkey(l.bulto) !== S.bulto){ S.bulto = bkey(l.bulto); setTimeout(() => toast(`Ojo: ese producto es del palet ${plabel(S.bulto)}. Cambié a ese palet.`, null, null, true), 2700); }
     return l;
   };
   let hit = L.filter(l => pad14(l.ean) === pad14(d));
@@ -803,6 +831,139 @@ function textOut(){
   if (!falt.length && !sobr.length && !ex.length && !sin.length) t += `\nTodo cuadra con la guía.\n`;
   return t;
 }
+/* ---------- guía con ✓ / ✗ ---------- */
+function stInfo(l){
+  if (l.rev) return { k: "rev", mk: "?", t: "Revisar", pdf: "REVISAR" };
+  const s = state(l);
+  if (s === "ok") return { k: "ok", mk: "✓", t: "OK", pdf: "OK" };
+  if (s === "none") return { k: "none", mk: "✗", t: "No llegó", pdf: "NO LLEGO" };
+  if (s === "part") return { k: "bad", mk: "✗", t: `Faltan ${l.cant - l.n}`, pdf: `FALTAN ${l.cant - l.n}` };
+  return { k: "bad", mk: "✗", t: `Sobran ${l.n - l.cant}`, pdf: `SOBRAN ${l.n - l.cant}` };
+}
+let guideOpen = false;
+function renderGuide(){
+  const box = $("#guideView"); box.hidden = !guideOpen;
+  $("#guideBtn").setAttribute("aria-expanded", guideOpen); $("#guideBtn").textContent = guideOpen ? "Ocultar guía" : "Ver guía con ✓ y ✗";
+  if (!guideOpen) return;
+  if (!S.guias.length){ box.innerHTML = `<div class="empty">No hay guías cargadas.</div>`; return; }
+  box.innerHTML = S.guias.map(g => {
+    let prev = null, rows = "";
+    for (const l of g.lineas){
+      if (l.bulto !== prev){ prev = l.bulto; rows += `<tr class="ph"><td colspan="7">${esc(l.bulto)}-</td></tr>`; }
+      const s = stInfo(l);
+      rows += `<tr class="${s.k === "ok" ? "" : s.k === "rev" ? "rev" : "bad"}"><td class="m ${s.k}">${s.mk}</td><td class="r">${esc(l.codigo)}</td><td class="r">${l.cant}</td><td class="c hide-s">${esc(l.um)}</td>
+        <td class="d">${esc(l.desc)}<small>${esc(l.ean)}${s.k !== "ok" ? ` · <b class="st ${s.k}">${esc(s.t)}</b>` : ""}</small></td><td class="r">${l.n}</td><td class="hide-s"><span class="st ${s.k}">${esc(s.t)}</span></td></tr>`;
+    }
+    const nOk = g.lineas.filter(l => !l.rev && state(l) === "ok").length;
+    return `<div class="paper"><h3>Guía N° ${esc(g.folio)} <span>Entrega ${esc(g.entrega || "—")} · ${nOk} de ${g.lineas.length} OK · Monto total $${fmt(g.monto)}</span></h3>
+      <div class="tw"><table><thead><tr><th></th><th>CODIGO</th><th>CANT.</th><th class="hide-s">UM</th><th>DESCRIPCION</th><th>RECIB.</th><th class="hide-s">ESTADO</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join("");
+}
+$("#guideBtn").onclick = () => { guideOpen = !guideOpen; renderGuide(); };
+{ const r1 = render; render = function(){ r1(); if (S.tab === "resumen") renderGuide(); }; }
+
+/* PDF hecho a mano (sin librerías: funciona sin internet) */
+function makePdf(){
+  const W = 595.28, H = 841.89, M = 32;
+  const enc = s => { let o = ""; for (const ch of String(s)){ const c = ch.codePointAt(0);
+      const m = { 8211: 150, 8212: 151, 8230: 133, 8216: 145, 8217: 146, 8220: 147, 8221: 148, 8364: 128 };
+      const b = c < 256 ? c : (m[c] || 63); o += String.fromCharCode(b); }
+    return o.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)"); };
+  const pages = []; let ops = [], y = 0;
+  const col = { ink: "0.07 0.07 0.07", mute: "0.35 0.35 0.35", ok: "0.09 0.5 0.24", bad: "0.75 0.15 0.18", rev: "0.65 0.36 0", head: "0.91 0.93 0.95", ph: "0.96 0.96 0.97", badbg: "0.99 0.94 0.94", revbg: "0.99 0.96 0.91" };
+  const txt = (x, yy, s, size = 8, font = "F1", c = col.ink) => ops.push(`BT /${font} ${size} Tf ${c} rg ${x.toFixed(2)} ${(H - yy).toFixed(2)} Td (${enc(s)}) Tj ET`);
+  const rect = (x, yy, w, h, c) => ops.push(`${c} rg ${x.toFixed(2)} ${(H - yy - h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+  const line = (x1, y1, x2, y2, w = 0.6, c = "0.25 0.25 0.25") => ops.push(`${c} RG ${w} w ${x1.toFixed(2)} ${(H - y1).toFixed(2)} m ${x2.toFixed(2)} ${(H - y2).toFixed(2)} l S`);
+  const tick = (x, yy, c) => ops.push(`${c} RG 1.4 w 1 J 1 j ${x.toFixed(2)} ${(H - yy - 4).toFixed(2)} m ${(x + 2.6).toFixed(2)} ${(H - yy - 6.8).toFixed(2)} l ${(x + 7.5).toFixed(2)} ${(H - yy - 0.6).toFixed(2)} l S`);
+  const cross = (x, yy, c) => ops.push(`${c} RG 1.4 w 1 J ${x.toFixed(2)} ${(H - yy - 0.5).toFixed(2)} m ${(x + 6.5).toFixed(2)} ${(H - yy - 7).toFixed(2)} l S ${x.toFixed(2)} ${(H - yy - 7).toFixed(2)} m ${(x + 6.5).toFixed(2)} ${(H - yy - 0.5).toFixed(2)} l S`);
+  const qmark = (x, yy, c) => txt(x + 1, yy + 7.5, "?", 10, "F2", c);
+  // columnas: código, cant, um, descripción, recib, estado
+  const C = [[M, 50], [M + 50, 30], [M + 80, 26], [M + 106, 290], [M + 396, 40], [M + 436, W - M - (M + 436)]];
+  const fit = (s, w, size) => { const max = Math.floor(w / (size * 0.52)); return s.length > max ? s.slice(0, max - 1) + "…" : s; };
+  const newPage = () => { if (ops.length) pages.push(ops.join("\n")); ops = []; y = M; };
+  const footer = () => {};
+  const tableHead = () => {
+    rect(M, y, W - 2 * M, 14, col.head);
+    ["CODIGO", "CANT.", "UM", "DESCRIPCION", "RECIB.", "ESTADO"].forEach((h, i) => txt(C[i][0] + 4, y + 10, h, 7.5, "F2"));
+    line(M, y, W - M, y); line(M, y + 14, W - M, y + 14); y += 14;
+  };
+  const vlines = (y0, y1) => { for (const [x] of C) line(x, y0, x, y1); line(W - M, y0, W - M, y1); };
+  const L = allLines(), ent = S.guias.find(g => g.entrega)?.entrega || "—";
+  const nOk = L.filter(l => !l.rev && state(l) === "ok").length;
+  newPage();
+  txt(M, y + 14, "Chequeo de recepción", 16, "F2");
+  txt(M, y + 28, `Entrega ${ent} · ${new Date().toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })} · Guías: ${S.guias.map(g => g.folio).join(", ")}`, 9, "F1", col.mute);
+  y += 38;
+  const counts = [["OK", nOk, col.ok], ["Con diferencia", L.filter(l => !l.rev && l.n && l.n !== l.cant).length, col.bad], ["No llegaron", L.filter(l => !l.rev && !l.n).length, col.bad], ["Por revisar", L.filter(l => l.rev).length, col.rev], ["Fuera de guía", Object.keys(S.extras).length, col.bad]];
+  let cx = M; for (const [k, v, c] of counts){ txt(cx, y + 12, String(v), 14, "F2", c); txt(cx, y + 22, k, 7.5, "F1", col.mute); cx += 100; }
+  y += 34;
+  for (const g of S.guias){
+    if (y > H - M - 60) newPage();
+    txt(M, y + 11, `Guía N° ${g.folio}`, 11, "F2");
+    txt(M + 120, y + 11, `${g.lineas.filter(l => !l.rev && state(l) === "ok").length} de ${g.lineas.length} OK · Monto total $${fmt(g.monto)}`, 8.5, "F1", col.mute);
+    y += 16; tableHead(); let y0 = y, prev = null;
+    for (const l of g.lineas){
+      const need = (l.bulto !== prev ? 13 : 0) + 20;
+      if (y + need > H - M - 14){ vlines(y0, y); line(M, y, W - M, y); newPage(); tableHead(); y0 = y; }
+      if (l.bulto !== prev){ prev = l.bulto; rect(M, y, W - 2 * M, 13, col.ph); txt(C[3][0] + 4, y + 9.5, `${l.bulto}-`, 7.5, "F4"); y += 13; }
+      const s = stInfo(l);
+      if (s.k !== "ok") rect(M, y, W - 2 * M, 20, s.k === "rev" ? col.revbg : col.badbg);
+      txt(C[0][0] + C[0][1] - 4 - l.codigo.length * 4.5, y + 9, l.codigo, 7.5, "F3");
+      txt(C[1][0] + C[1][1] - 4 - String(l.cant).length * 4.5, y + 9, String(l.cant), 7.5, "F3");
+      txt(C[2][0] + 6, y + 9, l.um, 7.5);
+      txt(C[3][0] + 4, y + 9, fit(l.desc, C[3][1] - 8, 7.5), 7.5);
+      txt(C[3][0] + 4, y + 17, l.ean, 6.5, "F3", col.mute);
+      txt(C[4][0] + C[4][1] - 4 - String(l.n).length * 4.5, y + 9, String(l.n), 7.5, "F3");
+      const c = s.k === "ok" ? col.ok : s.k === "rev" ? col.rev : col.bad;
+      (s.k === "ok" ? tick : s.k === "rev" ? qmark : cross)(C[5][0] + 5, y + 3, c);
+      txt(C[5][0] + 16, y + 9, s.pdf, 7.5, "F2", c);
+      y += 20;
+    }
+    vlines(y0, y); line(M, y, W - M, y); y += 14;
+  }
+  const ex = Object.entries(S.extras);
+  if (ex.length){
+    if (y > H - M - 40) newPage();
+    txt(M, y + 10, "Escaneados que no están en la guía", 10, "F2", col.bad); y += 16;
+    for (const [c, n] of ex){ if (y > H - M - 12){ newPage(); } cross(M, y, col.bad); txt(M + 12, y + 7, `${c} · ${n} caja(s)`, 8, "F3"); y += 12; }
+  }
+  pages.push(ops.join("\n"));
+  // ensamblar
+  const objs = [];
+  const add = s => (objs.push(s), objs.length);
+  const fonts = [["F1", "Helvetica"], ["F2", "Helvetica-Bold"], ["F3", "Courier"], ["F4", "Courier-Bold"]].map(([n, b]) => [n, add(`<< /Type /Font /Subtype /Type1 /BaseFont /${b} /Encoding /WinAnsiEncoding >>`)]);
+  const res = `<< /Font << ${fonts.map(([n, id]) => `/${n} ${id} 0 R`).join(" ")} >> >>`;
+  const pagesId = objs.length + 1 + pages.length * 2 + 0; // se calcula abajo
+  const kids = [];
+  const total = pages.length;
+  pages.forEach((c, i) => {
+    const body = c + `\nBT /F1 7 Tf 0.4 0.4 0.4 rg ${M} ${M / 2} Td (${enc(`Página ${i + 1} de ${total} · Chequeo de Guías`)}) Tj ET`;
+    const cs = add(`<< /Length ${body.length} >>\nstream\n${body}\nendstream`);
+    kids.push(add(`<< /Type /Page /Parent PARENT 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${res} /Contents ${cs} 0 R >>`));
+  });
+  const parent = add(`<< /Type /Pages /Kids [${kids.map(k => k + " 0 R").join(" ")}] /Count ${kids.length} >>`);
+  const cat = add(`<< /Type /Catalog /Pages ${parent} 0 R >>`);
+  let out = "%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"; const offs = [];
+  objs.forEach((o, i) => { offs.push(out.length); out += `${i + 1} 0 obj\n${o.replace("PARENT", parent)}\nendobj\n`; });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offs.map(o => String(o).padStart(10, "0") + " 00000 n \n").join("");
+  out += `trailer\n<< /Size ${objs.length + 1} /Root ${cat} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+  return bytes;
+}
+async function savePdf(bytes, name){
+  try { const dl = await window.claude?.use?.("downloads"); if (dl){ await dl.save({ filename: name, data: bytes }); return; } } catch (e){ if (e?.code === "cancelled" || e?.code === "declined") return; }
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+$("#pdfBtn").onclick = async () => {
+  if (!S.guias.length){ toast("No hay guías cargadas", null, null, true); return; }
+  const ent = (S.guias.find(g => g.entrega)?.entrega || "recepcion").replace(/[^\w-]/g, "");
+  const d = new Date(); const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  try { await savePdf(makePdf(), `Chequeo-${ent}-${ds}.pdf`); } catch { toast("No pude crear el PDF", null, null, true); }
+};
+
 $("#copyBtn").onclick = async () => {
   const txt = textOut();
   try { await navigator.clipboard.writeText(txt); toast("Resumen copiado"); }
@@ -880,10 +1041,10 @@ function beep(ok){
   try { navigator.vibrate?.(ok ? 60 : [80, 60, 80]); } catch {}
 }
 function hud(){
-  const g = bultoGroups().find(x => x.k === S.bulto);
+  const g = S.bulto === "__all" ? { k: "__all", lines: allLines() } : bultoGroups().find(x => x.k === S.bulto);
   if (!g){ $("#hud").innerHTML = `Sin guías<small>Carga guías primero</small>`; return; }
   const e = g.lines.reduce((a, l) => a + l.cant, 0), c = g.lines.reduce((a, l) => a + Math.min(l.n, l.cant), 0);
-  $("#hud").innerHTML = `Palet ${esc(plabel(g.k))}<small>${c} de ${e} contados</small>`;
+  $("#hud").innerHTML = `${g.k === "__all" ? "Lista completa" : "Palet " + esc(plabel(g.k))}<small>${c} de ${e} contados</small>`;
 }
 function validCode(c){
   if ([8, 12, 13, 14].includes(c.length)) return gtinOk(c);
